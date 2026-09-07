@@ -53,7 +53,11 @@
     ".rail-brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 16px; min-width: 0; }",
     ".rail-mark { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(145deg, var(--series-1), #1d5fae); display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff; flex: none; }",
     ".rail-logo { height: 28px; width: auto; max-width: 150px; display: block; }",
-    ".rail-name { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    ".rail-markslot { flex: none; display: flex; }",
+    ".rail-hello { min-width: 0; }",
+    ".rail-hello .hi { font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;\n                       color: var(--text-muted); line-height: 1.3; }",
+    ".rail-hello .who { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.25;\n                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    ".rail-hello.anon .hi { display: none; }",
     ".rail-sec { font-size: 10.5px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted); padding: 13px 10px 5px; }",
     ".rail .nav { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; text-decoration: none; color: var(--text-secondary); font-size: 14px; font-weight: 550; }",
     ".rail .nav:hover { background: var(--rail-hover); color: var(--text-primary); }",
@@ -143,10 +147,14 @@
     var main = el("div", "shell-main");
     var scrim = el("div", "rail-scrim");
 
+    // The mark sits in its own slot so a logo can replace it without taking the
+    // greeting beside it with it.
     var brand = el("div", "rail-brand");
-    var BRAND_DEFAULT = '<div class="rail-mark" id="shellMark">&bull;</div>' +
-                        '<div class="rail-name" id="shellName">Agent Hub</div>';
-    brand.innerHTML = BRAND_DEFAULT;
+    brand.innerHTML =
+      '<div class="rail-markslot" id="shellMarkSlot"><div class="rail-mark" id="shellMark">&bull;</div></div>' +
+      '<div class="rail-hello" id="shellHello">' +
+        '<div class="hi">Welcome</div><div class="who" id="shellName">Agent Hub</div>' +
+      "</div>";
     rail.appendChild(brand);
 
     var groups = {};
@@ -292,17 +300,20 @@
       refresh: refresh,
       actions: actions,
       setBrand: function (name, logoUrl) {
-        var n = document.getElementById("shellName");
+        // The agency's name drives the mark's initials; the text beside it is
+        // the person's name, set by applyGreeting().
         var m = document.getElementById("shellMark");
-        if (name && n) { n.textContent = name; if (m) m.textContent = initials(name); }
+        if (name && m) m.textContent = initials(name);
         if (logoUrl) {
           var img = new Image();
           img.onload = function () {
-            brand.innerHTML = "";
+            var slot = document.getElementById("shellMarkSlot");
+            if (!slot) return;
+            slot.innerHTML = "";
             img.className = "rail-logo";
-            brand.appendChild(img);
+            slot.appendChild(img);                // greeting beside it is untouched
           };
-          img.src = logoUrl;                      // a broken logo just leaves the text
+          img.src = logoUrl;                      // a broken logo just leaves the mark
         }
       },
       setUser: function (label, sub) {
@@ -342,13 +353,18 @@
 
       // Rail only -- echoing the agency name into the crumb would be a third
       // copy of it, on top of the rail and the header.
+      // Before the early return below: the greeting is about the person, not the
+      // agency, so it still applies when there is no branding at all.
+      applyGreeting(mail);
+
       // Branding gone means signed out, or no longer in an agency. Put the rail
       // back to the default -- leaving the old logo up would show the next
       // person on this browser which agency the last one belonged to.
       if (!name && !src) {
         if (lastName || lastLogo) {
           lastName = lastLogo = null;
-          brand.innerHTML = BRAND_DEFAULT;
+          var slot = document.getElementById("shellMarkSlot");
+          if (slot) slot.innerHTML = '<div class="rail-mark" id="shellMark">&bull;</div>';
         }
         if (!mail && lastUser) { lastUser = null; global.HubShell.setUser(null, ""); }
         return;
@@ -356,6 +372,27 @@
       if (name && name !== lastName) { lastName = name; global.HubShell.setBrand(name, null); }
       if (src && src !== lastLogo) { lastLogo = src; global.HubShell.setBrand(null, src); }
       if (mail && mail !== lastUser) { lastUser = mail; global.HubShell.setUser(mail, ""); }
+    }
+
+    // "Welcome / <name>" beside the mark. The name comes from prefs, which
+    // Deals & PNL fills in from agency membership -- the only place it is known.
+    // Failing that, the local part of the address, which is better than nothing
+    // and is at least the person rather than the agency.
+    var lastGreet = null;
+    function applyGreeting(mail) {
+      var who = document.getElementById("shellName");
+      var box = document.getElementById("shellHello");
+      if (!who || !box) return;
+      var nm = null;
+      try { nm = (global.HubPrefs && global.HubPrefs.get("agentName", null)) || null; } catch (e) {}
+      if (!nm && mail) nm = String(mail).split("@")[0];
+      var text = nm || "Agent Hub";
+      if (text === lastGreet) return;
+      lastGreet = text;
+      who.textContent = text;
+      who.title = text;
+      // No name to greet: drop the "Welcome" line rather than greeting nobody.
+      box.classList.toggle("anon", !nm);
     }
 
     sniff();
