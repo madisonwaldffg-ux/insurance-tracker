@@ -267,26 +267,6 @@
   .trend.up { color: var(--good); background: var(--good-soft); }
   .trend.down { color: var(--danger); background: var(--danger-soft); }
 
-  /* ---------- Breakdown charts ---------- */
-  .chart-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
-  .chart-controls .lbl { font-size: 13px; color: var(--text-muted); }
-  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 16px; align-items: start; }
-  .hbar-row { display: grid; grid-template-columns: 104px 1fr 34px; align-items: center; gap: 8px; margin-bottom: 5px; }
-  .hbar-name { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
-  .hbar-track { position: relative; height: 14px; }
-  .hbar-fill {
-    position: absolute; left: 0; top: 0; bottom: 0;
-    background: var(--series-1);
-    border-radius: 0 4px 4px 0;
-    min-width: 2px;
-  }
-  .hbar-val { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-  .cols { display: flex; align-items: flex-end; gap: 5px; height: 84px; border-bottom: 1px solid var(--baseline); padding: 0 4px; }
-  .col-slot { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
-  .col-fill { width: 100%; max-width: 22px; background: var(--series-1); border-radius: 4px 4px 0 0; min-height: 2px; }
-  .col-fill.zero { background: var(--grid); }
-  .col-x { display: flex; gap: 6px; padding: 4px 4px 0; }
-  .col-x span { flex: 1; text-align: center; font-size: 10px; color: var(--text-muted); }
   .empty { color: var(--text-muted); font-size: 13px; padding: 12px 0; }
 
   /* ---------- Log table ---------- */
@@ -454,28 +434,6 @@
     <div class="fn-note" id="funnelNote"></div>
   </section>
 
-  <section class="card">
-    <div class="chart-controls">
-      <span class="lbl">Break down</span>
-      <select id="metricSel"></select>
-      <span class="lbl" id="periodEcho"></span>
-    </div>
-    <div class="charts">
-      <div>
-        <h2>By lead type</h2>
-        <div id="chartLead"></div>
-      </div>
-      <div>
-        <h2>By state</h2>
-        <div id="chartState"></div>
-      </div>
-      <div>
-        <h2>By time of day</h2>
-        <div id="chartHour"></div>
-      </div>
-    </div>
-  </section>
-
   <!-- ============ CALL LOG ============ -->
   <section class="card">
     <div class="toolbar">
@@ -497,7 +455,6 @@
     </div>
   </section>
 </div>
-<div class="tooltip" id="tooltip"></div>
 
 <script src="hub-branding.js"></script>
 <script src="comp-guide.js"></script>
@@ -1174,126 +1131,6 @@
 
   }
 
-  /* ---------------- Breakdown charts ---------------- */
-  var activeMetric = "pickup";
-
-  function renderMetricSel() {
-    var sel = $("metricSel");
-    sel.innerHTML = "";
-    METRICS.forEach(function (m) {
-      var o = document.createElement("option");
-      o.value = m.key; o.textContent = m.label;
-      sel.appendChild(o);
-    });
-    sel.value = activeMetric;
-    sel.onchange = function () { activeMetric = sel.value; renderCharts(); };
-  }
-
-  function metricHit(e) {
-    return !!e[activeMetric];
-  }
-
-  var tooltip = $("tooltip");
-  function attachTip(el, text) {
-    el.addEventListener("mousemove", function (ev) {
-      tooltip.textContent = text;
-      tooltip.style.opacity = "1";
-      tooltip.style.left = (ev.clientX + 12) + "px";
-      tooltip.style.top = (ev.clientY - 28) + "px";
-    });
-    el.addEventListener("mouseleave", function () { tooltip.style.opacity = "0"; });
-  }
-
-  function renderHBars(containerId, groups) {
-    var box = $(containerId);
-    box.innerHTML = "";
-    var keys = Object.keys(groups).sort(function (a, b) { return groups[b] - groups[a]; });
-    keys = keys.filter(function (k) { return groups[k] > 0; }).slice(0, 8);
-    if (keys.length === 0) {
-      box.innerHTML = '<div class="empty">No data for this period yet.</div>';
-      return;
-    }
-    var max = groups[keys[0]];
-    keys.forEach(function (k) {
-      var row = document.createElement("div");
-      row.className = "hbar-row";
-      var name = document.createElement("div");
-      name.className = "hbar-name"; name.textContent = k;
-      var track = document.createElement("div");
-      track.className = "hbar-track";
-      var fill = document.createElement("div");
-      fill.className = "hbar-fill";
-      fill.style.width = Math.max(2, (groups[k] / max) * 100) + "%";
-      track.appendChild(fill);
-      var val = document.createElement("div");
-      val.className = "hbar-val"; val.textContent = groups[k];
-      attachTip(track, k + ": " + groups[k]);
-      row.appendChild(name); row.appendChild(track); row.appendChild(val);
-      box.appendChild(row);
-    });
-  }
-
-  function renderHourChart(rows) {
-    var box = $("chartHour");
-    box.innerHTML = "";
-    var hits = rows.filter(metricHit);
-    if (hits.length === 0) {
-      box.innerHTML = '<div class="empty">No data for this period yet.</div>';
-      return;
-    }
-    var buckets = {};
-    for (var h = 7; h <= 21; h++) buckets[h] = 0;
-    hits.forEach(function (e) {
-      var h = new Date(e.ts).getHours();
-      if (h < 7) h = 7;
-      if (h > 21) h = 21;
-      buckets[h]++;
-    });
-    var max = Math.max.apply(null, Object.keys(buckets).map(function (k) { return buckets[k]; }));
-    var cols = document.createElement("div");
-    cols.className = "cols";
-    var xaxis = document.createElement("div");
-    xaxis.className = "col-x";
-    Object.keys(buckets).forEach(function (h) {
-      var slot = document.createElement("div");
-      slot.className = "col-slot";
-      var fill = document.createElement("div");
-      var v = buckets[h];
-      fill.className = "col-fill" + (v === 0 ? " zero" : "");
-      fill.style.height = v === 0 ? "2px" : Math.max(4, (v / max) * 100) + "%";
-      var hr = ((h % 12) || 12) + (h < 12 ? "a" : "p");
-      attachTip(slot, hr + ": " + v);
-      slot.appendChild(fill);
-      cols.appendChild(slot);
-      var lab = document.createElement("span");
-      lab.textContent = (h % 3 === 0) ? hr : "";
-      xaxis.appendChild(lab);
-    });
-    box.appendChild(cols);
-    box.appendChild(xaxis);
-  }
-
-  function renderCharts() {
-    var rows = filtered();
-    var hits = rows.filter(metricHit);
-    var byLead = {}, byState = {};
-    hits.forEach(function (e) {
-      byLead[e.leadType] = (byLead[e.leadType] || 0) + 1;
-      byState[e.state] = (byState[e.state] || 0) + 1;
-    });
-    renderHBars("chartLead", byLead);
-    renderHBars("chartState", byState);
-    renderHourChart(rows);
-    if (customDay) {
-      $("periodEcho").textContent = "· " + new Date(customDay + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-    } else if (customMonth) {
-      $("periodEcho").textContent = "· " + new Date(customMonth + "-01T12:00:00").toLocaleDateString(undefined, { month: "long", year: "numeric" });
-    } else {
-      var p = PERIODS.filter(function (x) { return x.key === activePeriod; })[0];
-      $("periodEcho").textContent = "· " + p.label;
-    }
-  }
-
   /* ---------------- Log table ---------------- */
   // Fixed-width abbreviations for the six core outcomes; a custom outcome just
   // uses its own chip label, since there's no house style to abbreviate it to.
@@ -1651,7 +1488,6 @@
     var rows = filtered();
     renderTabs();
     renderFunnel(rows);
-    renderCharts();
     renderLog(rows);
   }
 
@@ -1864,7 +1700,6 @@
     updateThemeBtn();
     renderLeadOptions();
     renderStateOptions();
-    renderMetricSel();
     resetForm();
     $("dDate").value = dateKey(new Date());
     $("dDate").onchange = refreshDialsForm;
