@@ -83,6 +83,9 @@
     "Banner Life": { plus:true, products:{
       "Beyond Term":[145,140,135,130,125,120,115,110,105,100,95,90,85,80]
     }},
+    // CICA Life pays a flat 50% on every product regardless of contract level,
+    // so it uses flat: instead of a per-product table. Type any product name.
+    "CICA Life": { flat:50, products:{} },
     "Transamerica": { products:{
       "Trendsetter Super Term":[105,102,100,90,85,80,75,73,70,67,65,63,60,57],
       "Trendsetter LB Term":[115,110,105,100,90,85,80,75,70,65,60,55,50,45],

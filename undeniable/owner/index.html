@@ -377,6 +377,7 @@
     if (level == null || level === "") return null;
     var ck = findKey(CARRIERS, carrier); if (!ck) return null;
     var c = CARRIERS[ck];
+    if (c.flat != null) return c.flat;   // flat-rate carrier (e.g. CICA Life)
     var pk = findKey(c.products, product); if (!pk) return null;
     var li = LEVELS.indexOf(parseInt(level, 10)); if (li < 0) return null;
     var pv = c.products[pk];

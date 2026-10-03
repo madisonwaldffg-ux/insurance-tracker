@@ -1122,8 +1122,11 @@
   // of "Banner Life"/"Beyond Term" simply never calculated, and nothing said so.
   function compLookup(carrier, product, level) {
     if (!carrier || !product) return { miss: "incomplete" };   // still being typed
-    if (level == null || level === "") return { miss: "level" };
     var ckey = findCarrierKey(carrier);
+    if (ckey && COMP_CARRIERS[ckey].flat != null) {           // flat-rate carrier (e.g. CICA Life): same % for every product and level
+      return { rate: COMP_CARRIERS[ckey].flat, base: COMP_CARRIERS[ckey].flat, bonus: 0, bonusIncluded: false, verify: false };
+    }
+    if (level == null || level === "") return { miss: "level" };
     if (!ckey) return { miss: "carrier" };
     var c = COMP_CARRIERS[ckey];
     var pkey = findProductKey(c, product);

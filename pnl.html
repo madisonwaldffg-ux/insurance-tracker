@@ -566,6 +566,9 @@
       <div class="field"><label for="e-kind">Type</label>
         <select id="e-kind">
           <option value="lead">Lead purchase</option>
+          <option value="ghl">GoHighLevel</option>
+          <option value="meta">Meta Ads</option>
+          <option value="systems">Systems</option>
           <option value="other">Other</option>
         </select>
       </div>
@@ -759,7 +762,7 @@
     var issuedAP = sum(issuedDeals, function (d) { return d.ap; });
     var commission = sum(issuedDeals, earnedCom);
     var expenses = sum(exps, function (e) { return e.price; });
-    var leadSpend = sum(exps.filter(function (e) { return e.kind === "lead"; }), function (e) { return e.price; });
+    var leadSpend = sum(exps.filter(isLeadSpend), function (e) { return e.price; });
     var profit = commission - expenses;
     var profitClass = profit > 0 ? "profit-pos" : profit < 0 ? "profit-neg" : "";
     var profitSign = profit > 0 ? "+" : profit < 0 ? "−" : "";
@@ -939,7 +942,9 @@
     $("expBody").innerHTML = exps.map(function (e) {
       var typeCell = e.kind === "lead"
         ? '<span class="status-chip">Lead' + (e.lead ? " · " + esc(e.lead) : "") + "</span>"
-        : '<span class="muted">Other</span>';
+        : e.kind === "meta"
+        ? '<span class="status-chip">Meta Ads</span>'
+        : '<span class="muted">' + esc(expKinds()[e.kind] || "Other") + "</span>";
       return "<tr><td>" + fmtDay(e.date) + "</td><td>" + esc(e.item) + "</td>" +
         "<td>" + typeCell + "</td>" +
         '<td class="num">' + money(e.price) + "</td>" +
@@ -969,11 +974,11 @@
     // the top Commission tile), not the month it was submitted.
     var deals = roiScope === "month" ? issuedInMonth(currentMonth) : state.deals.slice();
     var leadExps = (roiScope === "month" ? monthExpenses() : state.expenses.slice())
-      .filter(function (e) { return e.kind === "lead"; });
+      .filter(isLeadSpend);
 
     var rows = {};
     function row(k) { return rows[k] = rows[k] || { spend: 0, n: 0, ap: 0, com: 0 }; }
-    leadExps.forEach(function (e) { row(e.lead || "(unassigned)").spend += num(e.price) || 0; });
+    leadExps.forEach(function (e) { row(expLead(e) || "(unassigned)").spend += num(e.price) || 0; });
     deals.forEach(function (d) {
       var r = row(d.lead || "(unassigned)");
       r.n++; r.ap += num(d.ap) || 0; r.com += earnedCom(d);
@@ -1024,7 +1029,7 @@
   function renderDatalists() {
     updateProductList();
     fillList("carrierList", [], Object.keys(COMP_CARRIERS));
-    fillList("leadList", state.deals.map(function (d) { return d.lead; }).concat(state.expenses.map(function (e) { return e.lead; })), ["Goat aged $3", "Unknown", "Referral"]);
+    fillList("leadList", state.deals.map(function (d) { return d.lead; }).concat(state.expenses.map(function (e) { return e.lead; })), ["Goat aged $3", "Meta Ads", "Unknown", "Referral"]);
     fillList("itemList", state.expenses.map(function (e) { return e.item; }), ["Goat leads", "Ringy"]);
   }
   function fillList(id, values, seeds) {
@@ -1131,6 +1136,19 @@
 
   /* Comp guide data lives in comp-guide.js (shared with the agency owner hub). */
 
+  // Expense types. "meta" (Meta Ads) counts as lead spend under the "Meta Ads"
+  // lead type so Lead ROI lines up with deals tagged Meta Ads.
+  function expKinds() { return { lead: "Lead purchase", ghl: "GoHighLevel", meta: "Meta Ads", systems: "Systems", other: "Other" }; }
+  function isLeadSpend(e) { return e.kind === "lead" || e.kind === "meta"; }
+  function expLead(e) { return e.kind === "meta" ? (e.lead || "Meta Ads") : e.lead; }
+  function kindFromText(t) {
+    t = String(t || "").toLowerCase();
+    if (/meta|facebook/.test(t)) return "meta";
+    if (/gohighlevel|high ?level|\bghl\b/.test(t)) return "ghl";
+    if (/system/.test(t)) return "systems";
+    if (/lead/.test(t)) return "lead";
+    return "other";
+  }
   function normKey(s) { return String(s == null ? "" : s).trim().toLowerCase(); }
   function findCarrierKey(carrier) {
     var n = normKey(carrier);
@@ -1152,8 +1170,11 @@
   // of "Banner Life"/"Beyond Term" simply never calculated, and nothing said so.
   function compLookup(carrier, product, level) {
     if (!carrier || !product) return { miss: "incomplete" };   // still being typed
-    if (level == null || level === "") return { miss: "level" };
     var ckey = findCarrierKey(carrier);
+    if (ckey && COMP_CARRIERS[ckey].flat != null) {           // flat-rate carrier (e.g. CICA Life): same % for every product and level
+      return { rate: COMP_CARRIERS[ckey].flat, base: COMP_CARRIERS[ckey].flat, bonus: 0, bonusIncluded: false, verify: false };
+    }
+    if (level == null || level === "") return { miss: "level" };
     if (!ckey) return { miss: "carrier" };
     var c = COMP_CARRIERS[ckey];
     var pkey = findProductKey(c, product);
@@ -1400,7 +1421,7 @@
     editingExpId = id;
     $("e-date").value = e.date;
     $("e-item").value = e.item || "";
-    $("e-kind").value = e.kind === "lead" ? "lead" : "other";
+    $("e-kind").value = expKinds()[e.kind] ? e.kind : "other";
     $("e-lead").value = e.lead || "";
     $("e-price").value = e.price != null ? e.price : "";
     syncLeadField();
@@ -1419,7 +1440,7 @@
       date: $("e-date").value,
       item: $("e-item").value.trim(),
       kind: kind,
-      lead: kind === "lead" ? $("e-lead").value.trim() : "",
+      lead: kind === "lead" ? $("e-lead").value.trim() : kind === "meta" ? "Meta Ads" : "",
       price: num($("e-price").value)
     };
     if (editingExpId) {
@@ -1505,11 +1526,11 @@
     rows.push([]);
     rows.push(["EXPENSES"]);
     rows.push(["Date","Item","Type","Lead type","Price"]);
-    exps.forEach(function (e) { rows.push([e.date, e.item, e.kind === "lead" ? "Lead" : "Other", e.lead, e.price]); });
+    exps.forEach(function (e) { rows.push([e.date, e.item, e.kind === "lead" ? "Lead" : (expKinds()[e.kind] || "Other"), expLead(e), e.price]); });
     rows.push([]);
     var commission = sum(issuedInMonth(currentMonth), earnedCom);
     var expenses = sum(exps, function (e) { return e.price; });
-    var leadSpend = sum(exps.filter(function (e) { return e.kind === "lead"; }), function (e) { return e.price; });
+    var leadSpend = sum(exps.filter(isLeadSpend), function (e) { return e.price; });
     rows.push(["PNL"]);
     rows.push(["Total sales","Submitted AP","Avg AP per sale","Issued AP","Commission","Expenses","Lead spend","Profit","ROI %"]);
     var submittedAP = sum(deals, function (d) { return d.ap; });
@@ -1655,10 +1676,10 @@
           if (expKeys[key2]) { dupes++; return; }
           expKeys[key2] = 1;
           var kindRaw = get("kind");
-          var kind = kindRaw ? (/lead/i.test(kindRaw) ? "lead" : "other") : (/lead/i.test(item) ? "lead" : "other");
+          var kind = kindFromText(kindRaw || item);
           state.expenses.push({
             id: uid(), date: date, item: item, kind: kind,
-            lead: kind === "lead" ? get("lead") : "",
+            lead: kind === "lead" ? get("lead") : kind === "meta" ? "Meta Ads" : "",
             price: price
           });
           addedExps++; lastDate = date;
