@@ -499,7 +499,7 @@
           <div class="field"><label for="d-com">Commission ($)</label><div class="com-row"><input type="number" id="d-com" class="narrow" min="0" step="0.01" placeholder="auto"><span class="com-note" id="comNote"></span></div></div>
           <div class="field"><label for="d-lead">Lead type</label><input type="text" id="d-lead" class="wide" list="leadList" placeholder="Goat aged $3"></div>
           <div class="field"><label for="d-issued-date">Effective date <span style="color:var(--text-muted)">(optional)</span></label><input type="date" id="d-issued-date"></div>
-          <div class="field"><label for="d-draft-date">Preferred draft date <span style="color:var(--text-muted)">(after initial premium)</span></label><input type="date" id="d-draft-date"></div>
+          <div class="field"><label for="d-draft-day">Preferred draft date <span style="color:var(--text-muted)">(after initial premium)</span></label><select id="d-draft-day" class="wide"><option value="">Select day</option></select></div>
           <div class="field"><label for="d-state">Client's state</label><select id="d-state" class="wide"><option value="">Select state</option></select></div>
           <div class="field"><label for="d-beneficiary">Beneficiary</label><input type="text" id="d-beneficiary" class="wide" placeholder="Name / relationship"></div>
           <div class="field"><label for="d-policy-num">Policy number</label><input type="text" id="d-policy-num" class="wide" placeholder="Policy #"></div>
@@ -883,7 +883,7 @@
         ["Monthly", money(d.monthly)],
         ["Lead type", esc(d.lead) || "&mdash;"],
         ["Effective date", d.issuedDate ? fmtDay(d.issuedDate) : "&mdash;"],
-        ["Draft date", d.draftDate ? fmtDay(d.draftDate) : "&mdash;"],
+        ["Draft date", draftDayOf(d) ? draftDayLabel(draftDayOf(d)) : "&mdash;"],
         ["State", esc(d.state) || "&mdash;"],
         ["Beneficiary", esc(d.beneficiary) || "&mdash;"],
         ["Policy #", esc(d.policyNum) || "&mdash;"],
@@ -1163,7 +1163,38 @@
     }
     return "";
   }
+  // Preferred draft date is a day of the month (1-31), shown as "1st day of the month".
+  function ordinal(n) {
+    var v = n % 100;
+    if (v >= 11 && v <= 13) return n + "th";
+    return n + ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th");
+  }
+  function draftDayLabel(n) { return ordinal(n) + " day of the month"; }
+  // deals saved briefly with a full draft date keep working: use that date's day
+  function draftDayOf(d) {
+    if (d.draftDay) return d.draftDay;
+    var m = /^\d{4}-\d{2}-(\d{2})$/.exec(d.draftDate || "");
+    return m ? parseInt(m[1], 10) : null;
+  }
+  // CSV import: accepts "3", "3rd", "3rd day of the month", or a full date
+  function parseDraftDay(v) {
+    v = String(v || "").trim();
+    if (!v) return null;
+    var nd = normDate(v);
+    if (nd) return parseInt(nd.slice(8, 10), 10);
+    var m = /^(\d{1,2})/.exec(v);
+    var n = m ? parseInt(m[1], 10) : NaN;
+    return n >= 1 && n <= 31 ? n : null;
+  }
   function fillStateSelect() {
+    var ds = document.getElementById("d-draft-day");
+    if (ds && ds.options.length <= 1) {
+      for (var i = 1; i <= 31; i++) {
+        var od = document.createElement("option");
+        od.value = String(i); od.textContent = draftDayLabel(i);
+        ds.appendChild(od);
+      }
+    }
     var sel = document.getElementById("d-state");
     if (!sel || sel.options.length > 1) return;
     usStates().forEach(function (st) {
@@ -1366,7 +1397,7 @@
     $("d-reqs").checked = !!d.reqs;
     $("d-notes").value = d.notes || "";
     fillStateSelect();
-    $("d-draft-date").value = d.draftDate || "";
+    $("d-draft-day").value = draftDayOf(d) ? String(draftDayOf(d)) : "";
     $("d-state").value = d.state || "";
     $("d-beneficiary").value = d.beneficiary || "";
     $("d-policy-num").value = d.policyNum || "";
@@ -1377,7 +1408,7 @@
     // Never hide populated fields mid-edit -- if this deal has anything in the
     // secondary set, show it rather than making them hunt for it.
     if (d.face != null || d.monthly != null || d.com != null || d.lead ||
-        d.issuedDate || d.paid || d.notes || d.reqs || d.draftDate || d.state ||
+        d.issuedDate || d.paid || d.notes || d.reqs || draftDayOf(d) || d.state ||
         d.beneficiary || d.policyNum || d.referrals) setDealMoreOpen(true, false);
     updateProductList();
     recalcCommission();
@@ -1402,7 +1433,7 @@
       paid: $("d-paid").checked,
       reqs: $("d-reqs").checked,
       notes: $("d-notes").value.trim(),
-      draftDate: $("d-draft-date").value,
+      draftDay: $("d-draft-day").value ? parseInt($("d-draft-day").value, 10) : null,
       state: $("d-state").value,
       beneficiary: $("d-beneficiary").value.trim(),
       policyNum: $("d-policy-num").value.trim(),
@@ -1568,7 +1599,7 @@
     rows.push(["DEALS — " + monthLabel(currentMonth)]);
     rows.push(["Date","Client","Product","Carrier","Face","Monthly","AP","Commission","Lead type","Status","Effective date","Paid","Requirements","Notes","Draft date","State","Beneficiary","Policy number","Referrals collected"]);
     deals.forEach(function (d) {
-      rows.push([d.date, d.client, d.policy, d.carrier, d.face, d.monthly, d.ap, d.com, d.lead, d.status, d.issuedDate, d.paid ? "Y" : "N", (d.reqs ? "Y" : "N"), d.notes, d.draftDate || "", d.state || "", d.beneficiary || "", d.policyNum || "", d.referrals ? "Y" : "N"]);
+      rows.push([d.date, d.client, d.policy, d.carrier, d.face, d.monthly, d.ap, d.com, d.lead, d.status, d.issuedDate, d.paid ? "Y" : "N", (d.reqs ? "Y" : "N"), d.notes, draftDayOf(d) ? draftDayLabel(draftDayOf(d)) : "", d.state || "", d.beneficiary || "", d.policyNum || "", d.referrals ? "Y" : "N"]);
     });
     rows.push([]);
     rows.push(["EXPENSES"]);
@@ -1674,7 +1705,7 @@
             paid: headerIndex(lower, ["paid", "paid (y/n)", "commission paid"]),
             reqs: headerIndex(lower, ["requirements", "reqs"]),
             notes: headerIndex(lower, ["notes", "note"]),
-            draftDate: headerIndex(lower, ["draft date", "preferred draft date"]),
+            draftDay: headerIndex(lower, ["draft date", "draft day", "preferred draft date"]),
             state: headerIndex(lower, ["state", "client state", "client's state"]),
             beneficiary: headerIndex(lower, ["beneficiary"]),
             policyNum: headerIndex(lower, ["policy number", "policy #", "policy no"]),
@@ -1718,7 +1749,7 @@
             paid: /^(y|yes|true|1)/i.test(get("paid")),
             reqs: /^(y|yes|true|1)/i.test(get("reqs")),
             notes: get("notes"),
-            draftDate: normDate(get("draftDate")) || "",
+            draftDay: parseDraftDay(get("draftDay")),
             state: normState(get("state")),
             beneficiary: get("beneficiary"),
             policyNum: get("policyNum"),
