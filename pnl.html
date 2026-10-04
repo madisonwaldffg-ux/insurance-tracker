@@ -499,7 +499,12 @@
           <div class="field"><label for="d-com">Commission ($)</label><div class="com-row"><input type="number" id="d-com" class="narrow" min="0" step="0.01" placeholder="auto"><span class="com-note" id="comNote"></span></div></div>
           <div class="field"><label for="d-lead">Lead type</label><input type="text" id="d-lead" class="wide" list="leadList" placeholder="Goat aged $3"></div>
           <div class="field"><label for="d-issued-date">Effective date <span style="color:var(--text-muted)">(optional)</span></label><input type="date" id="d-issued-date"></div>
+          <div class="field"><label for="d-draft-date">Preferred draft date <span style="color:var(--text-muted)">(after initial premium)</span></label><input type="date" id="d-draft-date"></div>
+          <div class="field"><label for="d-state">Client's state</label><select id="d-state" class="wide"><option value="">Select state</option></select></div>
+          <div class="field"><label for="d-beneficiary">Beneficiary</label><input type="text" id="d-beneficiary" class="wide" placeholder="Name / relationship"></div>
+          <div class="field"><label for="d-policy-num">Policy number</label><input type="text" id="d-policy-num" class="wide" placeholder="Policy #"></div>
           <div class="field"><label for="d-notes">Notes</label><input type="text" id="d-notes" class="wide" placeholder=""></div>
+          <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-referrals"> Referrals collected</label></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-paid"> Paid</label></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-reqs"> Requirements</label></div>
         </div>
@@ -878,6 +883,11 @@
         ["Monthly", money(d.monthly)],
         ["Lead type", esc(d.lead) || "&mdash;"],
         ["Effective date", d.issuedDate ? fmtDay(d.issuedDate) : "&mdash;"],
+        ["Draft date", d.draftDate ? fmtDay(d.draftDate) : "&mdash;"],
+        ["State", esc(d.state) || "&mdash;"],
+        ["Beneficiary", esc(d.beneficiary) || "&mdash;"],
+        ["Policy #", esc(d.policyNum) || "&mdash;"],
+        ["Referrals", d.referrals ? "Collected" : "&mdash;"],
         ["Notes", esc(d.notes) || "&mdash;"]
       ];
       var detail = isCrossIn ? "" :
@@ -1139,6 +1149,29 @@
   // Expense types. "meta" (Meta Ads) counts as lead spend under the "Meta Ads"
   // lead type so Lead ROI lines up with deals tagged Meta Ads.
   function expKinds() { return { lead: "Lead purchase", ghl: "GoHighLevel", meta: "Meta Ads", systems: "Systems", other: "Other" }; }
+  // US states for the Client's state dropdown (value = 2-letter code)
+  function usStates() {
+    return [["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["DC","District of Columbia"],["FL","Florida"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"]];
+  }
+  // accepts "AZ", "az", "Arizona" -> "AZ"; anything unrecognised -> ""
+  function normState(v) {
+    var t = String(v || "").trim().toLowerCase();
+    if (!t) return "";
+    var list = usStates();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i][0].toLowerCase() === t || list[i][1].toLowerCase() === t) return list[i][0];
+    }
+    return "";
+  }
+  function fillStateSelect() {
+    var sel = document.getElementById("d-state");
+    if (!sel || sel.options.length > 1) return;
+    usStates().forEach(function (st) {
+      var o = document.createElement("option");
+      o.value = st[0]; o.textContent = st[1];
+      sel.appendChild(o);
+    });
+  }
   function isLeadSpend(e) { return e.kind === "lead" || e.kind === "meta"; }
   function expLead(e) { return e.kind === "meta" ? (e.lead || "Meta Ads") : e.lead; }
   function kindFromText(t) {
@@ -1282,6 +1315,7 @@
      keeps every handler, datalist and auto-calc wired exactly as before -- only
      where it sits on screen changed. */
   function openDealSheet() {
+    fillStateSelect();
     $("dealScrim").classList.add("show");
     $("dealSheet").classList.add("show");
     setTimeout(function () { var c = $("d-client"); if (c) c.focus(); }, 180);
@@ -1302,6 +1336,7 @@
     // An edit may have force-opened the panel; going back to a blank form should
     // return to whatever the person actually chose.
     setDealMoreOpen(!!(window.HubPrefs && HubPrefs.get("dealMoreOpen", false)), false);
+    fillStateSelect();
     $("d-date").value = defaultDateForMonth();
     $("dealFormTitle").textContent = "Add a deal";
     $("dealSubmit").textContent = "Add deal";
@@ -1330,13 +1365,20 @@
     $("d-paid").checked = !!d.paid;
     $("d-reqs").checked = !!d.reqs;
     $("d-notes").value = d.notes || "";
+    fillStateSelect();
+    $("d-draft-date").value = d.draftDate || "";
+    $("d-state").value = d.state || "";
+    $("d-beneficiary").value = d.beneficiary || "";
+    $("d-policy-num").value = d.policyNum || "";
+    $("d-referrals").checked = !!d.referrals;
     $("dealFormTitle").textContent = "Edit deal — " + (d.client || "");
     $("dealSubmit").textContent = "Save changes";
     $("dealCancel").style.display = "";
     // Never hide populated fields mid-edit -- if this deal has anything in the
     // secondary set, show it rather than making them hunt for it.
     if (d.face != null || d.monthly != null || d.com != null || d.lead ||
-        d.issuedDate || d.paid || d.notes || d.reqs) setDealMoreOpen(true, false);
+        d.issuedDate || d.paid || d.notes || d.reqs || d.draftDate || d.state ||
+        d.beneficiary || d.policyNum || d.referrals) setDealMoreOpen(true, false);
     updateProductList();
     recalcCommission();
     openDealSheet();
@@ -1359,7 +1401,12 @@
       issuedDate: $("d-issued-date").value,
       paid: $("d-paid").checked,
       reqs: $("d-reqs").checked,
-      notes: $("d-notes").value.trim()
+      notes: $("d-notes").value.trim(),
+      draftDate: $("d-draft-date").value,
+      state: $("d-state").value,
+      beneficiary: $("d-beneficiary").value.trim(),
+      policyNum: $("d-policy-num").value.trim(),
+      referrals: $("d-referrals").checked
     };
     if (editingId) {
       var i = state.deals.findIndex(function (x) { return x.id === editingId; });
@@ -1519,9 +1566,9 @@
     var deals = monthDeals(), exps = monthExpenses();
     var rows = [];
     rows.push(["DEALS — " + monthLabel(currentMonth)]);
-    rows.push(["Date","Client","Product","Carrier","Face","Monthly","AP","Commission","Lead type","Status","Effective date","Paid","Requirements","Notes"]);
+    rows.push(["Date","Client","Product","Carrier","Face","Monthly","AP","Commission","Lead type","Status","Effective date","Paid","Requirements","Notes","Draft date","State","Beneficiary","Policy number","Referrals collected"]);
     deals.forEach(function (d) {
-      rows.push([d.date, d.client, d.policy, d.carrier, d.face, d.monthly, d.ap, d.com, d.lead, d.status, d.issuedDate, d.paid ? "Y" : "N", (d.reqs ? "Y" : "N"), d.notes]);
+      rows.push([d.date, d.client, d.policy, d.carrier, d.face, d.monthly, d.ap, d.com, d.lead, d.status, d.issuedDate, d.paid ? "Y" : "N", (d.reqs ? "Y" : "N"), d.notes, d.draftDate || "", d.state || "", d.beneficiary || "", d.policyNum || "", d.referrals ? "Y" : "N"]);
     });
     rows.push([]);
     rows.push(["EXPENSES"]);
@@ -1626,7 +1673,12 @@
             issuedDate: headerIndex(lower, ["effective date", "effective", "issued date", "issued", "date issued"]),
             paid: headerIndex(lower, ["paid", "paid (y/n)", "commission paid"]),
             reqs: headerIndex(lower, ["requirements", "reqs"]),
-            notes: headerIndex(lower, ["notes", "note"])
+            notes: headerIndex(lower, ["notes", "note"]),
+            draftDate: headerIndex(lower, ["draft date", "preferred draft date"]),
+            state: headerIndex(lower, ["state", "client state", "client's state"]),
+            beneficiary: headerIndex(lower, ["beneficiary"]),
+            policyNum: headerIndex(lower, ["policy number", "policy #", "policy no"]),
+            referrals: headerIndex(lower, ["referrals collected", "referrals"])
           };
           return;
         }
@@ -1665,7 +1717,12 @@
             issuedDate: normDate(get("issuedDate")) || "",
             paid: /^(y|yes|true|1)/i.test(get("paid")),
             reqs: /^(y|yes|true|1)/i.test(get("reqs")),
-            notes: get("notes")
+            notes: get("notes"),
+            draftDate: normDate(get("draftDate")) || "",
+            state: normState(get("state")),
+            beneficiary: get("beneficiary"),
+            policyNum: get("policyNum"),
+            referrals: /^(y|yes|true|1)/i.test(get("referrals"))
           });
           addedDeals++; lastDate = date;
         } else {
