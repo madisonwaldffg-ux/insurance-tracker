@@ -498,7 +498,7 @@
           <div class="field"><label for="d-monthly">Monthly ($)</label><input type="number" id="d-monthly" class="narrow" min="0" step="0.01" placeholder="0"></div>
           <div class="field"><label for="d-com">Commission ($)</label><div class="com-row"><input type="number" id="d-com" class="narrow" min="0" step="0.01" placeholder="auto"><span class="com-note" id="comNote"></span></div></div>
           <div class="field"><label for="d-lead">Lead type</label><input type="text" id="d-lead" class="wide" list="leadList" placeholder="Goat aged $3"></div>
-          <div class="field"><label for="d-issued-date">Issued date <span style="color:var(--text-muted)">(optional)</span></label><input type="date" id="d-issued-date"></div>
+          <div class="field"><label for="d-issued-date">Effective date <span style="color:var(--text-muted)">(optional)</span></label><input type="date" id="d-issued-date"></div>
           <div class="field"><label for="d-notes">Notes</label><input type="text" id="d-notes" class="wide" placeholder=""></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-paid"> Paid</label></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-reqs"> Requirements</label></div>
@@ -877,7 +877,7 @@
         ["Face", money(d.face)],
         ["Monthly", money(d.monthly)],
         ["Lead type", esc(d.lead) || "&mdash;"],
-        ["Issued", d.issuedDate ? fmtDay(d.issuedDate) : "&mdash;"],
+        ["Effective date", d.issuedDate ? fmtDay(d.issuedDate) : "&mdash;"],
         ["Notes", esc(d.notes) || "&mdash;"]
       ];
       var detail = isCrossIn ? "" :
@@ -898,7 +898,7 @@
           (!isCrossIn && d.reqs ? ' <span class="reqs-chip" title="Requirements outstanding">REQS</span>' : "") +
           (isCrossIn
             ? '<div class="issued-sub">Submitted ' + shortMonth(String(d.date || "").slice(0, 7)) + "</div>"
-            : (d.issuedDate ? '<div class="issued-sub">Issued ' + fmtDay(d.issuedDate) +
+            : (d.issuedDate ? '<div class="issued-sub">Effective ' + fmtDay(d.issuedDate) +
                 (effectiveIssuedYm(d) !== currentMonth ? " \u2192 counted in " + shortMonth(String(effectiveIssuedYm(d) || "")) : "") + "</div>" : "")) + "</td>" +
         "<td>" + (isCrossIn ? "—" : (d.paid ? '<span class="paid-yes" title="Commission received">&#10003;</span>' : '<span class="paid-no" title="Not paid yet">&mdash;</span>')) + "</td>" +
         '<td class="notes"' + (!isCrossIn && d.notes ? ' title="' + esc(d.notes) + '"' : "") + ">" +
@@ -1519,7 +1519,7 @@
     var deals = monthDeals(), exps = monthExpenses();
     var rows = [];
     rows.push(["DEALS — " + monthLabel(currentMonth)]);
-    rows.push(["Date","Client","Product","Carrier","Face","Monthly","AP","Commission","Lead type","Status","Issued date","Paid","Requirements","Notes"]);
+    rows.push(["Date","Client","Product","Carrier","Face","Monthly","AP","Commission","Lead type","Status","Effective date","Paid","Requirements","Notes"]);
     deals.forEach(function (d) {
       rows.push([d.date, d.client, d.policy, d.carrier, d.face, d.monthly, d.ap, d.com, d.lead, d.status, d.issuedDate, d.paid ? "Y" : "N", (d.reqs ? "Y" : "N"), d.notes]);
     });
@@ -1623,7 +1623,7 @@
             com: headerIndex(lower, ["commission", "com", "com ($)", "commission ($)"]),
             lead: headerIndex(lower, ["lead type", "lead"]),
             status: headerIndex(lower, ["status", "app status"]),
-            issuedDate: headerIndex(lower, ["issued date", "issued", "date issued"]),
+            issuedDate: headerIndex(lower, ["effective date", "effective", "issued date", "issued", "date issued"]),
             paid: headerIndex(lower, ["paid", "paid (y/n)", "commission paid"]),
             reqs: headerIndex(lower, ["requirements", "reqs"]),
             notes: headerIndex(lower, ["notes", "note"])
