@@ -189,6 +189,26 @@
     });
     nav.parentNode.removeChild(nav);   // drop the originals so ids resolve to the rail
 
+    // The agent's own client folder (set in Settings > Client folder; per account).
+    var folderLink = el("a", "nav ext");
+    folderLink.setAttribute("target", "_blank");
+    folderLink.setAttribute("rel", "noopener");
+    folderLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' +
+      '<span>Client folders</span><svg class="ext-ic" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>';
+    rail.appendChild(folderLink);
+    function syncFolderLink() {
+      var u = global.HubPrefs ? global.HubPrefs.get("clientFolderUrl", "") : "";
+      if (u && /^https?:\/\//i.test(u)) {
+        folderLink.setAttribute("href", u);
+        folderLink.title = "Opens your client folder in a new tab";
+        folderLink.style.display = "";
+      } else {
+        folderLink.style.display = "none";
+      }
+    }
+    syncFolderLink();
+    if (global.HubPrefs && global.HubPrefs.onChange) global.HubPrefs.onChange(syncFolderLink);
+
     // Outside team sales leaderboards -- open in a new tab, on every page.
     var EXTERNAL = [
       ["Forged AAO", "https://forged-aao.netlify.app/"],

@@ -130,6 +130,21 @@
     nrow.appendChild(name);
     wrap.appendChild(nrow);
 
+    // Link to the agent's own client folder (e.g. Google Drive). Saved per account,
+    // so each agent sees their own folder in the sidebar.
+    var frow = el("div", "hs-row");
+    frow.appendChild(el("label", null, "Client folder"));
+    var folder = el("input", "hs-input grow");
+    folder.type = "url";
+    folder.placeholder = "Paste your main Google Drive client folder link";
+    folder.value = global.HubPrefs.get("clientFolderUrl", "") || "";
+    folder.oninput = function () {
+      var v = folder.value.trim();
+      global.HubPrefs.set("clientFolderUrl", /^https?:\/\//i.test(v) ? v : undefined);
+    };
+    frow.appendChild(folder);
+    wrap.appendChild(frow);
+
     body.appendChild(wrap);
   }
 
