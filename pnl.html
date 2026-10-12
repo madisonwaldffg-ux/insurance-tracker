@@ -149,7 +149,7 @@
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 12px; color: var(--text-muted); }
   select, input[type="date"], input[type="text"], input[type="number"],
-  input[type="email"], input[type="password"] {
+  input[type="email"], input[type="password"], input[type="tel"], input[type="url"] {
     font: inherit; font-size: 14px;
     color: var(--text-primary);
     background: var(--page);
@@ -449,6 +449,25 @@
   .today-client:hover { text-decoration: underline; }
   @media (max-width: 560px) { .today-box li { flex-wrap: wrap; } .today-box label { flex-basis: calc(100% - 30px); } .today-client { margin-left: 26px; } }
   .todo-item.flash { box-shadow: 0 0 0 2px var(--series-1); transition: box-shadow .3s; }
+  .cbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+  .cbtn { font: inherit; font-size: 12.5px; font-weight: 600; text-decoration: none; padding: 4px 10px; border-radius: 7px;
+    border: 1px solid var(--baseline); color: var(--text-primary); background: var(--surface-1); cursor: pointer; }
+  .cbtn:hover { border-color: var(--series-1); color: var(--series-1); }
+  .cbtn.ghost { border-style: dashed; color: var(--text-muted); font-weight: 500; }
+  .cphone { font-size: 12.5px; color: var(--text-muted); margin-left: 4px; }
+  .ref-box { margin: 4px 0 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .ref-box summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+  .ref-list { list-style: none; margin: 6px 0 4px; padding: 0; }
+  .ref-row, .ref-wrap li { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .ref-row:last-child, .ref-wrap li:last-child { border-bottom: none; }
+  .ref-main, .ref-name { flex: 1; min-width: 160px; color: var(--text-primary); }
+  .ref-phone { font-size: 13px; color: var(--series-1); text-decoration: none; white-space: nowrap; }
+  .ref-row select, .ref-wrap select { font-size: 12.5px; padding: 3px 6px; }
+  .ref-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .ref-add input { flex: 1; min-width: 110px; }
+  .ref-wrap.shut > :not(.today-head) { display: none; }
+  .ref-wrap.shut > .today-head { margin-bottom: 0; }
+  .ref-wrap.shut > .today-head .fold-chev { transform: rotate(-90deg); }
   .todo-restore { background: none; border: none; padding: 2px 0 6px; font: inherit; font-size: 12.5px;
     color: var(--series-1); cursor: pointer; }
   .todo-restore:hover { text-decoration: underline; }
@@ -599,6 +618,9 @@
           <div class="field"><label for="d-draft-day">Preferred draft date <span style="color:var(--text-muted)">(after initial premium)</span></label><select id="d-draft-day" class="wide"><option value="">Select day</option></select></div>
           <div class="field"><label for="d-state">Client's state</label><select id="d-state" class="wide"><option value="">Select state</option></select></div>
           <div class="field"><label for="d-beneficiary">Beneficiary</label><input type="text" id="d-beneficiary" class="wide" placeholder="Name / relationship"></div>
+          <div class="field"><label for="d-phone">Client phone</label><input type="tel" id="d-phone" class="wide" placeholder="(555) 555-5555"></div>
+          <div class="field"><label for="d-email">Client email</label><input type="email" id="d-email" class="wide" placeholder="name@email.com"></div>
+          <div class="field full"><label for="d-folder">Client folder link <span style="color:var(--text-muted)">(Google Drive)</span></label><input type="url" id="d-folder" class="wide" placeholder="Paste the client's Google Drive folder link"></div>
           <div class="field"><label for="d-policy-num">Policy number</label><input type="text" id="d-policy-num" class="wide" placeholder="Policy #"></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-referrals"> Referrals collected</label></div>
           <div class="field full"><label for="d-notes">Notes</label><textarea id="d-notes" class="notes-box" rows="4" placeholder="Anything to remember about this client"></textarea></div>
@@ -653,6 +675,7 @@
       </div>
     </div>
     <div class="today-box" id="todayBox"></div>
+    <div class="today-box ref-wrap" id="refBox" style="display:none"></div>
     <div class="todo-list" id="todoList"></div>
     <div class="empty" id="todoEmpty" style="display:none"></div>
   </div>
@@ -1002,6 +1025,9 @@
         ["State", esc(d.state) || "&mdash;"],
         ["Beneficiary", esc(d.beneficiary) || "&mdash;"],
         ["Policy #", esc(d.policyNum) || "&mdash;"],
+        ["Phone", d.phone ? '<a href="' + telHref(d.phone) + '">' + esc(d.phone) + "</a>" : "&mdash;"],
+        ["Email", d.email ? '<a href="mailto:' + esc(d.email) + '">' + esc(d.email) + "</a>" : "&mdash;"],
+        ["Folder", safeUrl(d.folder) ? '<a href="' + esc(safeUrl(d.folder)) + '" target="_blank" rel="noopener">Open folder</a>' : "&mdash;"],
         ["Referrals", d.referrals ? "Collected" : "&mdash;"],
         ["Notes", esc(d.notes) || "&mdash;"]
       ];
@@ -1147,6 +1173,70 @@
     return '<span class="due-tag ' + cls + '" title="Due ' + esc(info.due) + '">' + txt + "</span>";
   }
 
+  // Contact helpers: tap-to-call/text links and only-http(s) folder links.
+  function telHref(p) { return "tel:" + String(p || "").replace(/[^\d+]/g, ""); }
+  function smsHref(p) { return "sms:" + String(p || "").replace(/[^\d+]/g, ""); }
+  function safeUrl(u) { u = String(u || "").trim(); return /^https?:\/\//i.test(u) ? u : ""; }
+  function contactBar(d) {
+    var bits = [];
+    if (d.phone) {
+      bits.push('<a class="cbtn" href="' + telHref(d.phone) + '">&#128222; Call</a>');
+      bits.push('<a class="cbtn" href="' + smsHref(d.phone) + '">&#128172; Text</a>');
+    }
+    if (d.email) bits.push('<a class="cbtn" href="mailto:' + esc(d.email) + '">&#9993; Email</a>');
+    if (safeUrl(d.folder)) bits.push('<a class="cbtn" href="' + esc(safeUrl(d.folder)) + '" target="_blank" rel="noopener">&#128193; Client folder</a>');
+    if (!bits.length) return '<div class="cbar"><button type="button" class="cbtn ghost" data-edit-contact="' + d.id + '">+ Add phone, email or folder</button></div>';
+    return '<div class="cbar">' + bits.join("") + (d.phone ? '<span class="cphone">' + esc(d.phone) + "</span>" : "") + "</div>";
+  }
+
+  // Referral log: names collected on the cementing call, worked as a call list.
+  var REF_STATUS = ["New", "Called", "Appointment set", "Sold", "Not interested"];
+  var openRefs = {};   // which clients' referral sections are expanded (this session)
+  function refSection(d) {
+    var refs = d.referralList || [];
+    var toCall = refs.filter(function (r) { return r.status === "New"; }).length;
+    var rows = refs.map(function (r) {
+      return '<li class="ref-row"><div class="ref-main"><b>' + esc(r.name) + "</b>" +
+        (r.rel ? ' <span class="muted">· ' + esc(r.rel) + "</span>" : "") +
+        (r.phone ? ' <a href="' + telHref(r.phone) + '" class="ref-phone">' + esc(r.phone) + "</a>" : "") + "</div>" +
+        '<select data-deal="' + d.id + '" data-ref-status="' + r.id + '">' +
+          REF_STATUS.map(function (st) { return "<option" + (st === r.status ? " selected" : "") + ">" + st + "</option>"; }).join("") +
+        "</select>" +
+        '<button type="button" class="todo-x" title="Remove referral" data-deal="' + d.id + '" data-del-ref="' + r.id + '">&times;</button></li>';
+    }).join("");
+    return '<details class="ref-box" data-refs="' + d.id + '"' + (openRefs[d.id] ? " open" : "") + '><summary>Referrals' +
+      ' <span class="muted">(' + refs.length + (toCall ? ", " + toCall + " to call" : "") + ")</span></summary>" +
+      (rows ? '<ul class="ref-list">' + rows + "</ul>" : '<div class="muted" style="font-size:13px;padding:4px 0">No referrals logged yet.</div>') +
+      '<form class="ref-add" data-deal="' + d.id + '">' +
+        '<input type="text" name="name" placeholder="Name" maxlength="80" required>' +
+        '<input type="tel" name="phone" placeholder="Phone" maxlength="30">' +
+        '<input type="text" name="rel" placeholder="Relationship" maxlength="40">' +
+        '<button type="submit" class="btn secondary small">Add referral</button></form></details>';
+  }
+  // Everyone still to call, across all clients.
+  function renderRefList() {
+    var rows = [];
+    state.deals.forEach(function (d) {
+      (d.referralList || []).forEach(function (r) { if (r.status === "New" || r.status === "Called") rows.push({ d: d, r: r }); });
+    });
+    rows.sort(function (a, b) { return (a.r.status === "New" ? 0 : 1) - (b.r.status === "New" ? 0 : 1) || String(a.r.added).localeCompare(String(b.r.added)); });
+    var box = $("refBox");
+    if (!rows.length) { box.style.display = "none"; box.innerHTML = ""; return; }
+    box.style.display = "";
+    var shut = !!todayFolded().refs;
+    box.classList.toggle("shut", shut);
+    box.innerHTML = '<button type="button" class="today-head" data-fold="refs" aria-expanded="' + !shut + '"><span class="fold-chev">&#9660;</span>' +
+      "Referrals to work &middot; " + rows.length + "</button><ul>" +
+      rows.map(function (x) {
+        return '<li><span class="ref-name"><b>' + esc(x.r.name) + "</b>" + (x.r.rel ? ' <span class="muted">· ' + esc(x.r.rel) + "</span>" : "") + "</span>" +
+          (x.r.phone ? '<a href="' + telHref(x.r.phone) + '" class="ref-phone">' + esc(x.r.phone) + "</a>" : "") +
+          '<a href="#" class="today-client" data-jump="' + x.d.id + '">from ' + (esc(x.d.client) || "client") + "</a>" +
+          '<select data-deal="' + x.d.id + '" data-ref-status="' + x.r.id + '">' +
+            REF_STATUS.map(function (st) { return "<option" + (st === x.r.status ? " selected" : "") + ">" + st + "</option>"; }).join("") +
+          "</select></li>";
+      }).join("") + "</ul>";
+  }
+
   // Standard steps removed for one client live in d.todoHidden (restorable).
   function applicableSteps(d) { return d.status === "Declined" ? [DECLINE_STEP] : TODO_STEPS; }
   function todoSteps(d) {
@@ -1227,6 +1317,7 @@
 
   function renderTodos() {
     renderToday();
+    renderRefList();
     // Most urgent first: earliest open deadline, then newest sale.
     var all = state.deals.slice().sort(function (a, b) {
       var na = todoDead(a) ? null : nextDue(a), nb = todoDead(b) ? null : nextDue(b);
@@ -1297,12 +1388,14 @@
           '<span class="todo-prog' + (p.complete ? " done" : "") + '">' + (p.complete ? "&#10003; Done" : p.done + "/" + p.total) + "</span>" +
           (meta ? '<div class="todo-meta">' + meta + "</div>" : "") +
         "</div>" +
+        contactBar(d) +
         '<div class="todo-bar' + (p.complete ? " done" : "") + '"><div style="width:' + pctW + '%"></div></div>' +
         '<ul class="todo-checks">' + checks + "</ul>" +
         (p.total ? "" : '<div class="muted" style="font-size:13px;padding:4px 0">No tasks for this client.</div>') + restore +
         '<form class="todo-add" data-deal="' + d.id + '"><input type="text" placeholder="Add a task for this client" maxlength="200">' +
           '<input type="date" class="todo-due-in" title="Deadline (optional)">' +
           '<button type="submit" class="btn secondary small">Add</button></form>' +
+        refSection(d) +
         '<label class="todo-notes-label" for="tn-' + d.id + '">Notes<span class="todo-saved" id="tns-' + d.id + '">Saved</span></label>' +
         '<textarea class="notes-box" id="tn-' + d.id + '" data-notes="' + d.id + '" rows="3" placeholder="Notes for this client">' + esc(d.notes) + "</textarea>" +
       "</div>";
@@ -1327,13 +1420,16 @@
     [].forEach.call(this.querySelectorAll("button"), function (x) { x.classList.toggle("on", x === b); });
     renderTodos();
   });
-  $("todayBox").addEventListener("click", function (ev) {
+  $("todayBox").addEventListener("click", onSummaryClick);
+  $("refBox").addEventListener("click", onSummaryClick);
+  function onSummaryClick(ev) {
     var f = ev.target.closest("[data-fold]");
     if (f) {
       var o = todayFolded(), k = f.getAttribute("data-fold");
       o[k] = !o[k];
       setTodayFolded(o);
       renderToday();
+      renderRefList();
       return;
     }
     var a = ev.target.closest("[data-jump]");
@@ -1350,7 +1446,7 @@
       card.scrollIntoView({ behavior: "smooth", block: "start" });
       card.classList.add("flash"); setTimeout(function () { card.classList.remove("flash"); }, 1400);
     }
-  });
+  }
   $("todoSearch").addEventListener("input", function () { todoQuery = this.value.trim(); renderTodos(); });
 
   function onTodoCheck(ev) {
@@ -1370,6 +1466,57 @@
   }
   $("todoList").addEventListener("change", onTodoCheck);
   $("todayBox").addEventListener("change", onTodoCheck);
+
+  /* ---------- referral log + contact events ---------- */
+  function findRef(d, id) { return (d.referralList || []).find(function (r) { return r.id === id; }); }
+  function onRefStatus(ev) {
+    var sel = ev.target;
+    if (!sel.hasAttribute || !sel.hasAttribute("data-ref-status")) return;
+    var d = findDeal(sel.getAttribute("data-deal"));
+    var r = d && findRef(d, sel.getAttribute("data-ref-status"));
+    if (!r) return;
+    r.status = sel.value;
+    save();
+    renderTodos();
+  }
+  $("todoList").addEventListener("change", onRefStatus);
+  $("refBox").addEventListener("change", onRefStatus);
+  $("todoList").addEventListener("submit", function (ev) {
+    var f = ev.target.closest("form.ref-add");
+    if (!f) return;
+    ev.preventDefault();
+    var d = findDeal(f.getAttribute("data-deal"));
+    var name = f.elements.name.value.trim();
+    if (!d || !name) return;
+    d.referralList = (d.referralList || []).concat([{
+      id: uid(), name: name, phone: f.elements.phone.value.trim(), rel: f.elements.rel.value.trim(),
+      status: "New", added: todayStr()
+    }]);
+    d.referrals = true;   // ticks "Referrals collected" on the deal too
+    openRefs[d.id] = true;
+    save();
+    renderTodos();
+    var again = document.querySelector('form.ref-add[data-deal="' + d.id + '"] input[name="name"]');
+    if (again) again.focus();
+  });
+  $("todoList").addEventListener("click", function (ev) {
+    var del = ev.target.closest("[data-del-ref]");
+    if (del) {
+      var d = findDeal(del.getAttribute("data-deal"));
+      if (!d) return;
+      d.referralList = (d.referralList || []).filter(function (r) { return r.id !== del.getAttribute("data-del-ref"); });
+      save();
+      renderTodos();
+      return;
+    }
+    var ec = ev.target.closest("[data-edit-contact]");
+    if (ec) { startEdit(ec.getAttribute("data-edit-contact")); setDealMoreOpen(true, false); }
+  });
+  // remember which referral sections are open across re-renders
+  $("todoList").addEventListener("toggle", function (ev) {
+    var dt = ev.target;
+    if (dt.matches && dt.matches("details[data-refs]")) openRefs[dt.getAttribute("data-refs")] = dt.open;
+  }, true);
   $("todoList").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-del-task], [data-hide-step], [data-restore]");
     if (!b) return;
@@ -1878,6 +2025,9 @@
     $("d-state").value = d.state || "";
     $("d-beneficiary").value = d.beneficiary || "";
     $("d-policy-num").value = d.policyNum || "";
+    $("d-phone").value = d.phone || "";
+    $("d-email").value = d.email || "";
+    $("d-folder").value = d.folder || "";
     $("d-referrals").checked = !!d.referrals;
     $("dealFormTitle").textContent = "Edit deal — " + (d.client || "");
     $("dealSubmit").textContent = "Save changes";
@@ -1886,7 +2036,7 @@
     // secondary set, show it rather than making them hunt for it.
     if (d.face != null || d.monthly != null || d.com != null || d.lead ||
         d.issuedDate || d.paid || d.notes || d.reqs || draftDayOf(d) || d.state ||
-        d.beneficiary || d.policyNum || d.referrals) setDealMoreOpen(true, false);
+        d.beneficiary || d.policyNum || d.referrals || d.phone || d.email || d.folder) setDealMoreOpen(true, false);
     updateProductList();
     recalcCommission();
     openDealSheet();
@@ -1914,6 +2064,9 @@
       state: $("d-state").value,
       beneficiary: $("d-beneficiary").value.trim(),
       policyNum: $("d-policy-num").value.trim(),
+      phone: $("d-phone").value.trim(),
+      email: $("d-email").value.trim(),
+      folder: $("d-folder").value.trim(),
       referrals: $("d-referrals").checked
     };
     // Remember when a deal turned Declined so the follow-up call gets a real deadline.
@@ -2079,9 +2232,9 @@
     var deals = monthDeals(), exps = monthExpenses();
     var rows = [];
     rows.push(["DEALS — " + monthLabel(currentMonth)]);
-    rows.push(["Date","Client","Product","Carrier","Face","Monthly","AP","Commission","Lead type","Status","Effective date","Paid","Requirements","Notes","Draft date","State","Beneficiary","Policy number","Referrals collected"]);
+    rows.push(["Date","Client","Product","Carrier","Face","Monthly","AP","Commission","Lead type","Status","Effective date","Paid","Requirements","Notes","Draft date","State","Beneficiary","Policy number","Referrals collected","Phone","Email","Folder link"]);
     deals.forEach(function (d) {
-      rows.push([d.date, d.client, d.policy, d.carrier, d.face, d.monthly, d.ap, d.com, d.lead, d.status, d.issuedDate, d.paid ? "Y" : "N", (d.reqs ? "Y" : "N"), d.notes, draftDayOf(d) ? draftDayLabel(draftDayOf(d)) : "", d.state || "", d.beneficiary || "", d.policyNum || "", d.referrals ? "Y" : "N"]);
+      rows.push([d.date, d.client, d.policy, d.carrier, d.face, d.monthly, d.ap, d.com, d.lead, d.status, d.issuedDate, d.paid ? "Y" : "N", (d.reqs ? "Y" : "N"), d.notes, draftDayOf(d) ? draftDayLabel(draftDayOf(d)) : "", d.state || "", d.beneficiary || "", d.policyNum || "", d.referrals ? "Y" : "N", d.phone || "", d.email || "", d.folder || ""]);
     });
     rows.push([]);
     rows.push(["EXPENSES"]);
@@ -2191,6 +2344,9 @@
             state: headerIndex(lower, ["state", "client state", "client's state"]),
             beneficiary: headerIndex(lower, ["beneficiary"]),
             policyNum: headerIndex(lower, ["policy number", "policy #", "policy no"]),
+            phone: headerIndex(lower, ["phone", "client phone", "phone number"]),
+            email: headerIndex(lower, ["email", "client email", "e-mail"]),
+            folder: headerIndex(lower, ["folder link", "folder", "drive folder", "client folder"]),
             referrals: headerIndex(lower, ["referrals collected", "referrals"])
           };
           return;
@@ -2235,6 +2391,9 @@
             state: normState(get("state")),
             beneficiary: get("beneficiary"),
             policyNum: get("policyNum"),
+            phone: get("phone"),
+            email: get("email"),
+            folder: get("folder"),
             referrals: /^(y|yes|true|1)/i.test(get("referrals"))
           });
           addedDeals++; lastDate = date;
