@@ -1097,6 +1097,8 @@
     ["updates", "Policy updates needed (beneficiaries, coverage amount, etc.)", "After the policy is issued"],
     ["bene", "Complete referral calls to beneficiaries and emergency contacts", "No deadline — when you have time"]
   ];
+  // Declined deals get this instead: call the client, explain, pivot to another carrier if possible.
+  var DECLINE_STEP = ["decline", "Decline follow-up call: inform the client and pivot to another carrier if able", "1 business day after the decline"];
   var todoFilter = "open";
   var todoQuery = "";
 
@@ -1128,6 +1130,8 @@
   function stepDue(d, key) {
     if (key === "cement") return { due: addBusinessDays(d.date, 2) };
     if (key === "bene") return {};   // non-urgent, no deadline
+    // declinedAt is stamped when the deal is switched to Declined; older declines fall back to the sale date.
+    if (key === "decline") return { due: addBusinessDays(d.declinedAt || d.date, 1) };
     if (key === "updates") {
       if (d.status !== "Issued") return { waiting: true };
       return { due: addDays(d.issuedDate || d.date, 3) };
@@ -1144,9 +1148,10 @@
   }
 
   // Standard steps removed for one client live in d.todoHidden (restorable).
+  function applicableSteps(d) { return d.status === "Declined" ? [DECLINE_STEP] : TODO_STEPS; }
   function todoSteps(d) {
     var hid = d.todoHidden || {};
-    return TODO_STEPS.filter(function (st) { return !hid[st[0]]; });
+    return applicableSteps(d).filter(function (st) { return !hid[st[0]]; });
   }
   function todoProgress(d) {
     var t = d.todo || {}, tasks = d.tasks || [], steps = todoSteps(d);
@@ -1155,7 +1160,8 @@
     tasks.forEach(function (x) { if (x.done) done++; });
     return { done: done, total: total, complete: done === total };
   }
-  function todoDead(d) { return d.status === "Declined" || d.status === "Cancelled"; }
+  // Cancelled deals drop off the to-do list; declined ones stay for the follow-up call.
+  function todoDead(d) { return d.status === "Cancelled"; }
   // Earliest deadline among this client's unchecked items (null if none dated).
   function nextDue(d) {
     var t = d.todo || {}, best = null;
@@ -1267,7 +1273,7 @@
           '<span class="todo-when">' + esc(st[2]) + "</span></label>" + (on || dead ? "" : dueTag(info)) +
           '<button type="button" class="todo-x" title="Remove for this client" data-deal="' + d.id + '" data-hide-step="' + st[0] + '">&times;</button></li>' });
       });
-      var hiddenN = TODO_STEPS.length - todoSteps(d).length;
+      var hiddenN = applicableSteps(d).length - todoSteps(d).length;
       var restore = hiddenN ? '<button type="button" class="todo-restore" data-deal="' + d.id + '" data-restore="1">Restore ' +
         hiddenN + " removed standard item" + (hiddenN === 1 ? "" : "s") + "</button>" : "";
       (d.tasks || []).forEach(function (x) {
@@ -1910,6 +1916,9 @@
       policyNum: $("d-policy-num").value.trim(),
       referrals: $("d-referrals").checked
     };
+    // Remember when a deal turned Declined so the follow-up call gets a real deadline.
+    var prevDeal = editingId ? state.deals.find(function (x) { return x.id === editingId; }) : null;
+    if (rec.status === "Declined" && !(prevDeal && prevDeal.status === "Declined")) rec.declinedAt = todayStr();
     if (editingId) {
       var i = state.deals.findIndex(function (x) { return x.id === editingId; });
       // Merge over the old record so anything the form doesn't show (the to-do
