@@ -64,6 +64,7 @@
     ".rail .nav { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; text-decoration: none; color: var(--text-secondary); font-size: 14px; font-weight: 550; }",
     ".rail .nav:hover { background: var(--rail-hover); color: var(--text-primary); }",
     ".rail .nav.on { background: var(--series-1-soft); color: var(--text-primary); box-shadow: inset 2px 0 0 var(--series-1); }",
+    ".rail .nav.ext .ext-ic { width: 12px; height: 12px; margin-left: auto; opacity: .55; }",
     ".rail .nav svg { width: 17px; height: 17px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }",
     ".rail-util { margin-top: auto; padding-top: 6px; }",
     ".rail-sync { padding: 10px 10px 0; }",
@@ -187,6 +188,25 @@
       made.push({ secEl: secEl, items: built });
     });
     nav.parentNode.removeChild(nav);   // drop the originals so ids resolve to the rail
+
+    // Outside team sales leaderboards -- open in a new tab, on every page.
+    var EXTERNAL = [
+      ["Forged AAO", "https://forged-aao.netlify.app/"],
+      ["Founders Portal", "https://www.thefoundersportal.com/"]
+    ];
+    var extSec = el("div", "rail-sec");
+    extSec.textContent = "Team leaderboards";
+    rail.appendChild(extSec);
+    EXTERNAL.forEach(function (x) {
+      var a = el("a", "nav ext");
+      a.setAttribute("href", x[1]);
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener");
+      a.title = "Opens " + x[1] + " in a new tab";
+      a.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><span>' + x[0] +
+        '</span><svg class="ext-ic" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>';
+      rail.appendChild(a);
+    });
 
     // Settings sits at the bottom of the rail, away from the pages -- it is a
     // destination you visit occasionally, not part of the daily rotation.
