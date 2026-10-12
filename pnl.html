@@ -425,7 +425,14 @@
   @media (max-width: 560px) { .todo-add input.todo-due-in { width: 130px; } }
   .today-box { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
     background: rgba(127,127,127,.04); }
+  .today-head, .today-gh { display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: none;
+    padding: 0; font: inherit; cursor: pointer; text-align: left; }
   .today-head { font-weight: 650; font-size: 14px; color: var(--text-primary); margin-bottom: 8px; }
+  .fold-chev { font-size: 9px; color: var(--text-muted); transition: transform .15s ease; display: inline-block; width: 10px; }
+  .today-box.shut > .today-head { margin-bottom: 0; }
+  .today-box.shut > .today-head .fold-chev, .today-group.shut .fold-chev { transform: rotate(-90deg); }
+  .today-box.shut > :not(.today-head) { display: none; }
+  .today-group.shut ul { display: none; }
   .today-clear { font-size: 13.5px; color: var(--good); }
   .today-group + .today-group { margin-top: 10px; }
   .today-gh { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
@@ -1081,13 +1088,14 @@
   /* ---------- Client to-dos ---------- */
   // The standard after-the-sale checklist every deal gets, in the order it happens.
   // Deadlines:
-  //   cement  -> 1-2 days after the deal is submitted (due submit + 2 days)
-  //   bene    -> on the cement call or a later follow-up (due submit + 7 days)
+  //   cement  -> 1-2 business days after the app is submitted (due submit + 2 business days)
+  //   bene    -> referral calls; non-urgent, no deadline
   //   updates -> only once the policy is issued (due issue/effective date + 3 days)
+  // (Keys stay the same as earlier versions so existing check-offs carry over.)
   var TODO_STEPS = [
-    ["cement", "Cement call with approval update and give policy info", "1–2 days after submitting"],
-    ["bene", "Collect beneficiaries or emergency contacts", "On the cement call or a follow-up"],
-    ["updates", "Policy updates needed (beneficiaries, coverage amount, etc.)", "After the policy is issued"]
+    ["cement", "Complete cementing call + collect referrals", "1–2 business days after submitting the app"],
+    ["updates", "Policy updates needed (beneficiaries, coverage amount, etc.)", "After the policy is issued"],
+    ["bene", "Complete referral calls to beneficiaries and emergency contacts", "No deadline — when you have time"]
   ];
   var todoFilter = "open";
   var todoQuery = "";
@@ -1098,6 +1106,18 @@
     var dt = new Date(+p[0], +p[1] - 1, +p[2] + n);
     return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
   }
+  // Skips Saturdays and Sundays.
+  function addBusinessDays(ymd, n) {
+    var p = String(ymd || "").split("-");
+    if (p.length < 3) return null;
+    var dt = new Date(+p[0], +p[1] - 1, +p[2]);
+    while (n > 0) {
+      dt.setDate(dt.getDate() + 1);
+      var wd = dt.getDay();
+      if (wd !== 0 && wd !== 6) n--;
+    }
+    return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+  }
   function daysFromToday(ymd) {
     var p = String(ymd || "").split("-");
     if (p.length < 3) return null;
@@ -1106,8 +1126,8 @@
   }
   // Due date for a standard step, or { waiting: true } when it can't start yet.
   function stepDue(d, key) {
-    if (key === "cement") return { due: addDays(d.date, 2) };
-    if (key === "bene") return { due: addDays(d.date, 7) };
+    if (key === "cement") return { due: addBusinessDays(d.date, 2) };
+    if (key === "bene") return {};   // non-urgent, no deadline
     if (key === "updates") {
       if (d.status !== "Issued") return { waiting: true };
       return { due: addDays(d.issuedDate || d.date, 3) };
@@ -1171,10 +1191,13 @@
       { name: "Due today", cls: "today", test: function (n) { return n === 0; } },
       { name: "Next 3 days", cls: "soon", test: function (n) { return n >= 1 && n <= 3; } }
     ];
+    var folded = todayFolded();
     var html = groups.map(function (g) {
       var mine = rows.filter(function (r) { return g.test(daysFromToday(r.due)); });
       if (!mine.length) return "";
-      return '<div class="today-group"><div class="today-gh ' + g.cls + '">' + g.name + " <span>" + mine.length + "</span></div><ul>" +
+      var shut = !!folded[g.cls];
+      return '<div class="today-group' + (shut ? " shut" : "") + '"><button type="button" class="today-gh ' + g.cls + '" data-fold="' + g.cls +
+        '" aria-expanded="' + !shut + '"><span class="fold-chev">&#9660;</span>' + g.name + " <span>" + mine.length + "</span></button><ul>" +
         mine.map(function (r) {
           var cid = "ds-" + r.d.id + "-" + r.key;
           return '<li><input type="checkbox" id="' + cid + '" data-deal="' + r.d.id + '" ' + r.attr + '>' +
@@ -1184,9 +1207,17 @@
         }).join("") + "</ul></div>";
     }).join("");
     var todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
-    $("todayBox").innerHTML = '<div class="today-head">Today &middot; ' + esc(todayLabel) + "</div>" +
+    var allShut = !!folded.all;
+    $("todayBox").classList.toggle("shut", allShut);
+    $("todayBox").innerHTML = '<button type="button" class="today-head" data-fold="all" aria-expanded="' + !allShut +
+      '"><span class="fold-chev">&#9660;</span>Today &middot; ' + esc(todayLabel) + "</button>" +
       (html || '<div class="today-clear">Nothing overdue or due in the next 3 days. You\'re all caught up.</div>');
   }
+
+  // Which summary sections are collapsed -- remembered on this device only.
+  var FOLD_KEY = "agentHub.todayFolded.v1";
+  function todayFolded() { try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || {}; } catch (e) { return {}; } }
+  function setTodayFolded(o) { try { localStorage.setItem(FOLD_KEY, JSON.stringify(o)); } catch (e) {} }
 
   function renderTodos() {
     renderToday();
@@ -1291,6 +1322,14 @@
     renderTodos();
   });
   $("todayBox").addEventListener("click", function (ev) {
+    var f = ev.target.closest("[data-fold]");
+    if (f) {
+      var o = todayFolded(), k = f.getAttribute("data-fold");
+      o[k] = !o[k];
+      setTodayFolded(o);
+      renderToday();
+      return;
+    }
     var a = ev.target.closest("[data-jump]");
     if (!a) return;
     ev.preventDefault();
