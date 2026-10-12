@@ -1165,27 +1165,35 @@
       var meta = [d.carrier, d.policy, d.ap != null ? money(d.ap) + " AP" : "", d.date ? "Submitted " + fmtDay(d.date) : "",
                   d.status === "Issued" && d.issuedDate ? "Effective " + fmtDay(d.issuedDate) : "",
                   d.policyNum ? "Policy # " + d.policyNum : ""].filter(Boolean).map(esc).join(" · ");
-      var steps = todoSteps(d).map(function (st) {
+      // Every item (standard + custom) goes in one list, ordered most pressing first:
+      // dated items by due date, then undated, then "waiting on issue", then checked.
+      var items = [];
+      function rank(done, info) { return done ? 3 : info.waiting ? 2 : info.due ? 0 : 1; }
+      todoSteps(d).forEach(function (st) {
         var on = !!t[st[0]], cid = "td-" + d.id + "-" + st[0];
         var info = stepDue(d, st[0]);
-        return '<li class="' + (on ? "checked" : "") + (info.waiting && !on ? " waiting" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
+        items.push({ r: rank(on, info), due: info.due || "", html: '<li class="' + (on ? "checked" : "") + (info.waiting && !on ? " waiting" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
           '" data-step="' + st[0] + '"' + (on ? " checked" : "") + '><label for="' + cid + '">' + esc(st[1]) +
           '<span class="todo-when">' + esc(st[2]) + "</span></label>" + (on || dead ? "" : dueTag(info)) +
-          '<button type="button" class="todo-x" title="Remove for this client" data-deal="' + d.id + '" data-hide-step="' + st[0] + '">&times;</button></li>';
-      }).join("");
+          '<button type="button" class="todo-x" title="Remove for this client" data-deal="' + d.id + '" data-hide-step="' + st[0] + '">&times;</button></li>' });
+      });
       var hiddenN = TODO_STEPS.length - todoSteps(d).length;
       var restore = hiddenN ? '<button type="button" class="todo-restore" data-deal="' + d.id + '" data-restore="1">Restore ' +
         hiddenN + " removed standard item" + (hiddenN === 1 ? "" : "s") + "</button>" : "";
-      var extra = (d.tasks || []).slice().sort(function (a, b) {
-        if (a.due && b.due) return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
-        return a.due ? -1 : b.due ? 1 : 0;
-      }).map(function (x) {
+      (d.tasks || []).forEach(function (x) {
         var cid = "tt-" + d.id + "-" + x.id;
-        return '<li class="' + (x.done ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
+        items.push({ r: rank(x.done, { due: x.due }), due: x.due || "", html: '<li class="' + (x.done ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
           '" data-task="' + x.id + '"' + (x.done ? " checked" : "") + '><label for="' + cid + '">' + esc(x.text) + "</label>" +
           (x.done || dead ? "" : dueTag({ due: x.due })) +
-          '<button type="button" class="todo-x" title="Remove task" data-deal="' + d.id + '" data-del-task="' + x.id + '">&times;</button></li>';
-      }).join("");
+          '<button type="button" class="todo-x" title="Remove task" data-deal="' + d.id + '" data-del-task="' + x.id + '">&times;</button></li>' });
+      });
+      items.forEach(function (it, i) { it.i = i; });
+      items.sort(function (a, b) {
+        if (a.r !== b.r) return a.r - b.r;
+        if (a.r === 0 && a.due !== b.due) return a.due < b.due ? -1 : 1;
+        return a.i - b.i;
+      });
+      var checks = items.map(function (it) { return it.html; }).join("");
       var pctW = p.total ? Math.round(p.done / p.total * 100) : 0;
       return '<div class="todo-item' + (p.complete ? " all-done" : "") + '">' +
         '<div class="todo-top"><span class="todo-name">' + (esc(d.client) || "(no name)") + "</span>" +
@@ -1194,7 +1202,7 @@
           (meta ? '<div class="todo-meta">' + meta + "</div>" : "") +
         "</div>" +
         '<div class="todo-bar' + (p.complete ? " done" : "") + '"><div style="width:' + pctW + '%"></div></div>' +
-        '<ul class="todo-checks">' + steps + extra + "</ul>" +
+        '<ul class="todo-checks">' + checks + "</ul>" +
         (p.total ? "" : '<div class="muted" style="font-size:13px;padding:4px 0">No tasks for this client.</div>') + restore +
         '<form class="todo-add" data-deal="' + d.id + '"><input type="text" placeholder="Add a task for this client" maxlength="200">' +
           '<input type="date" class="todo-due-in" title="Deadline (optional)">' +
