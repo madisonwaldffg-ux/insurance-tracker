@@ -468,6 +468,13 @@
   .ref-wrap.shut > :not(.today-head) { display: none; }
   .ref-wrap.shut > .today-head { margin-bottom: 0; }
   .ref-wrap.shut > .today-head .fold-chev { transform: rotate(-90deg); }
+  .todo-pen { font-size: 13px; }
+  .todo-pen:hover { color: var(--series-1); }
+  .todo-checks li.editing { display: block; }
+  .item-edit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 4px 0; }
+  .item-edit input[name=text] { flex: 1; min-width: 200px; }
+  .item-edit input[name=due] { width: 150px; }
+  .edit-hint { flex-basis: 100%; font-size: 12px; color: var(--text-muted); }
   .todo-restore { background: none; border: none; padding: 2px 0 6px; font: inherit; font-size: 12.5px;
     color: var(--series-1); cursor: pointer; }
   .todo-restore:hover { text-decoration: underline; }
@@ -1153,7 +1160,15 @@
     return Math.round((new Date(+p[0], +p[1] - 1, +p[2]) - t) / 86400000);
   }
   // Due date for a standard step, or { waiting: true } when it can't start yet.
+  // Per-client edits to a standard step live in d.todoEdit[key] = { text, due }.
+  function stepEdit(d, key) { return (d.todoEdit && d.todoEdit[key]) || {}; }
+  function stepLabel(d, st) { return stepEdit(d, st[0]).text || st[1]; }
   function stepDue(d, key) {
+    var ov = stepEdit(d, key).due;
+    if (ov) return { due: ov, custom: true };
+    return autoStepDue(d, key);
+  }
+  function autoStepDue(d, key) {
     if (key === "cement") return { due: addBusinessDays(d.date, 2) };
     if (key === "bene") return {};   // non-urgent, no deadline
     // declinedAt is stamped when the deal is switched to Declined; older declines fall back to the sale date.
@@ -1191,6 +1206,17 @@
 
   // Referral log: names collected on the cementing call, worked as a call list.
   var REF_STATUS = ["New", "Called", "Appointment set", "Sold", "Not interested"];
+  var editingItem = null;   // "dealId|step|key" or "dealId|task|id" while an item is being edited
+  function itemEditor(d, kind, key, text, due, isStd) {
+    return '<li class="editing"><form class="item-edit" data-deal="' + d.id + '" data-kind="' + kind + '" data-key="' + key + '">' +
+      '<input type="text" name="text" value="' + esc(text) + '" maxlength="200" required>' +
+      '<input type="date" name="due" value="' + esc(due || "") + '" title="' + (isStd ? "Leave blank to use the automatic deadline" : "Leave blank for no deadline") + '">' +
+      '<button type="submit" class="btn small">Save</button>' +
+      '<button type="button" class="btn secondary small" data-edit-cancel="1">Cancel</button>' +
+      (isStd ? '<button type="button" class="todo-restore" data-edit-reset="1">Reset to default</button>' : "") +
+      '<div class="edit-hint">' + (isStd ? "Clear the date to go back to the automatic deadline." : "Clear the date for no deadline.") + "</div>" +
+      "</form></li>";
+  }
   var openRefs = {};   // which clients' referral sections are expanded (this session)
   function refSection(d) {
     var refs = d.referralList || [];
@@ -1275,7 +1301,7 @@
       todoSteps(d).forEach(function (st) {
         if (t[st[0]]) return;
         var info = stepDue(d, st[0]);
-        if (info.due) rows.push({ d: d, due: info.due, label: st[1], attr: 'data-step="' + st[0] + '"', key: st[0] });
+        if (info.due) rows.push({ d: d, due: info.due, label: stepLabel(d, st), attr: 'data-step="' + st[0] + '"', key: st[0] });
       });
       (d.tasks || []).forEach(function (x) {
         if (!x.done && x.due) rows.push({ d: d, due: x.due, label: x.text, attr: 'data-task="' + x.id + '"', key: x.id });
@@ -1356,12 +1382,20 @@
       // dated items by due date, then undated, then "waiting on issue", then checked.
       var items = [];
       function rank(done, info) { return done ? 3 : info.waiting ? 2 : info.due ? 0 : 1; }
+      var pencil = function (kind, key) {
+        return '<button type="button" class="todo-x todo-pen" title="Edit text or deadline" data-deal="' + d.id + '" data-edit-item="' + kind + "|" + key + '">&#9998;</button>';
+      };
       todoSteps(d).forEach(function (st) {
         var on = !!t[st[0]], cid = "td-" + d.id + "-" + st[0];
         var info = stepDue(d, st[0]);
+        if (editingItem === d.id + "|step|" + st[0]) {
+          items.push({ r: rank(on, info), due: info.due || "", html: itemEditor(d, "step", st[0], stepLabel(d, st), stepEdit(d, st[0]).due, true) });
+          return;
+        }
         items.push({ r: rank(on, info), due: info.due || "", html: '<li class="' + (on ? "checked" : "") + (info.waiting && !on ? " waiting" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
-          '" data-step="' + st[0] + '"' + (on ? " checked" : "") + '><label for="' + cid + '">' + esc(st[1]) +
-          '<span class="todo-when">' + esc(st[2]) + "</span></label>" + (on || dead ? "" : dueTag(info)) +
+          '" data-step="' + st[0] + '"' + (on ? " checked" : "") + '><label for="' + cid + '">' + esc(stepLabel(d, st)) +
+          '<span class="todo-when">' + (info.custom ? "Custom deadline" : esc(st[2])) + "</span></label>" + (on || dead ? "" : dueTag(info)) +
+          pencil("step", st[0]) +
           '<button type="button" class="todo-x" title="Remove for this client" data-deal="' + d.id + '" data-hide-step="' + st[0] + '">&times;</button></li>' });
       });
       var hiddenN = applicableSteps(d).length - todoSteps(d).length;
@@ -1369,9 +1403,13 @@
         hiddenN + " removed standard item" + (hiddenN === 1 ? "" : "s") + "</button>" : "";
       (d.tasks || []).forEach(function (x) {
         var cid = "tt-" + d.id + "-" + x.id;
+        if (editingItem === d.id + "|task|" + x.id) {
+          items.push({ r: rank(x.done, { due: x.due }), due: x.due || "", html: itemEditor(d, "task", x.id, x.text, x.due, false) });
+          return;
+        }
         items.push({ r: rank(x.done, { due: x.due }), due: x.due || "", html: '<li class="' + (x.done ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
           '" data-task="' + x.id + '"' + (x.done ? " checked" : "") + '><label for="' + cid + '">' + esc(x.text) + "</label>" +
-          (x.done || dead ? "" : dueTag({ due: x.due })) +
+          (x.done || dead ? "" : dueTag({ due: x.due })) + pencil("task", x.id) +
           '<button type="button" class="todo-x" title="Remove task" data-deal="' + d.id + '" data-del-task="' + x.id + '">&times;</button></li>' });
       });
       items.forEach(function (it, i) { it.i = i; });
@@ -1466,6 +1504,52 @@
   }
   $("todoList").addEventListener("change", onTodoCheck);
   $("todayBox").addEventListener("change", onTodoCheck);
+
+  /* ---------- editing a checklist item's text / deadline ---------- */
+  $("todoList").addEventListener("click", function (ev) {
+    var pen = ev.target.closest("[data-edit-item]");
+    if (pen) {
+      editingItem = pen.getAttribute("data-deal") + "|" + pen.getAttribute("data-edit-item");
+      renderTodos();
+      var inp = document.querySelector("form.item-edit input[name=text]");
+      if (inp) { inp.focus(); inp.select(); }
+      return;
+    }
+    if (ev.target.closest("[data-edit-cancel]")) { editingItem = null; renderTodos(); return; }
+    var rs = ev.target.closest("[data-edit-reset]");
+    if (rs) {
+      var f = rs.closest("form.item-edit"), d = findDeal(f.getAttribute("data-deal"));
+      if (d && d.todoEdit) { delete d.todoEdit[f.getAttribute("data-key")]; save(); }
+      editingItem = null;
+      renderTodos();
+    }
+  });
+  $("todoList").addEventListener("submit", function (ev) {
+    var f = ev.target.closest("form.item-edit");
+    if (!f) return;
+    ev.preventDefault();
+    var d = findDeal(f.getAttribute("data-deal"));
+    if (!d) return;
+    var text = f.elements.text.value.trim(), due = f.elements.due.value || "";
+    var key = f.getAttribute("data-key");
+    if (f.getAttribute("data-kind") === "step") {
+      var std = applicableSteps(d).find(function (st) { return st[0] === key; });
+      var ed = {};
+      if (text && std && text !== std[1]) ed.text = text;
+      if (due) ed.due = due;
+      d.todoEdit = Object.assign({}, d.todoEdit || {});
+      if (ed.text || ed.due) d.todoEdit[key] = ed; else delete d.todoEdit[key];
+    } else {
+      var tk = (d.tasks || []).find(function (x) { return x.id === key; });
+      if (tk) { if (text) tk.text = text; tk.due = due; }
+    }
+    editingItem = null;
+    save();
+    renderTodos();
+  });
+  $("todoList").addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && ev.target.closest("form.item-edit")) { editingItem = null; renderTodos(); }
+  });
 
   /* ---------- referral log + contact events ---------- */
   function findRef(d, id) { return (d.referralList || []).find(function (r) { return r.id === id; }); }
