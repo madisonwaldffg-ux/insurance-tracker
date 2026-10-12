@@ -396,7 +396,9 @@
   .todo-item { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface-1); }
   .todo-item.all-done { opacity: .72; }
   .todo-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
-  .todo-name { font-weight: 650; font-size: 15px; color: var(--text-primary); }
+  .todo-name { font-weight: 650; font-size: 15px; color: var(--text-primary); text-decoration: none; }
+  a.todo-name:hover { color: var(--series-1); text-decoration: underline; }
+  tr.row-flash > td { background: var(--series-1-soft) !important; transition: background .4s; }
   .todo-meta { font-size: 12.5px; color: var(--text-muted); flex-basis: 100%; }
   .todo-prog { margin-left: auto; font-size: 12px; font-weight: 650; color: var(--text-secondary);
     background: rgba(127,127,127,.12); padding: 2px 9px; border-radius: 999px; }
@@ -1421,7 +1423,7 @@
       var checks = items.map(function (it) { return it.html; }).join("");
       var pctW = p.total ? Math.round(p.done / p.total * 100) : 0;
       return '<div class="todo-item' + (p.complete ? " all-done" : "") + '" data-id="' + d.id + '">' +
-        '<div class="todo-top"><span class="todo-name">' + (esc(d.client) || "(no name)") + "</span>" +
+        '<div class="todo-top"><a href="pnl.html" class="todo-name" data-goto-deal="' + d.id + '" title="Open this deal on Deals &amp; PNL">' + (esc(d.client) || "(no name)") + "</a>" +
           '<span class="status-chip ' + chipCls + '">' + esc(d.status || "Submitted") + "</span>" +
           '<span class="todo-prog' + (p.complete ? " done" : "") + '">' + (p.complete ? "&#10003; Done" : p.done + "/" + p.total) + "</span>" +
           (meta ? '<div class="todo-meta">' + meta + "</div>" : "") +
@@ -1504,6 +1506,31 @@
   }
   $("todoList").addEventListener("change", onTodoCheck);
   $("todayBox").addEventListener("change", onTodoCheck);
+
+  /* ---------- client name -> that deal on Deals & PNL, details open ---------- */
+  function gotoDeal(id) {
+    var d = findDeal(id);
+    if (!d) return;
+    currentMonth = String(d.date || todayStr()).slice(0, 7);
+    history.pushState(null, "", "pnl.html");
+    applyView();
+    render();
+    var btn = document.querySelector('#dealsBody [data-edit="' + id + '"]');
+    var tr = btn && btn.closest("tr.deal-row");
+    if (!tr) return;
+    var det = tr.nextElementSibling;
+    if (det && det.classList.contains("deal-detail")) { det.hidden = false; tr.classList.add("open"); }
+    tr.scrollIntoView({ behavior: "smooth", block: "center" });
+    tr.classList.add("row-flash");
+    setTimeout(function () { tr.classList.remove("row-flash"); }, 1600);
+  }
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("[data-goto-deal]");
+    if (!a) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    gotoDeal(a.getAttribute("data-goto-deal"));
+  }, true);
 
   /* ---------- editing a checklist item's text / deadline ---------- */
   $("todoList").addEventListener("click", function (ev) {
