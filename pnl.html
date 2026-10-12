@@ -1189,7 +1189,7 @@
     var groups = [
       { name: "Overdue", cls: "late", test: function (n) { return n < 0; } },
       { name: "Due today", cls: "today", test: function (n) { return n === 0; } },
-      { name: "Next 3 days", cls: "soon", test: function (n) { return n >= 1 && n <= 3; } }
+      { name: "Next 7 days", cls: "soon", test: function (n) { return n >= 1 && n <= 7; } }
     ];
     var folded = todayFolded();
     var html = groups.map(function (g) {
@@ -1211,7 +1211,7 @@
     $("todayBox").classList.toggle("shut", allShut);
     $("todayBox").innerHTML = '<button type="button" class="today-head" data-fold="all" aria-expanded="' + !allShut +
       '"><span class="fold-chev">&#9660;</span>Today &middot; ' + esc(todayLabel) + "</button>" +
-      (html || '<div class="today-clear">Nothing overdue or due in the next 3 days. You\'re all caught up.</div>');
+      (html || '<div class="today-clear">Nothing overdue or due in the next 7 days. You\'re all caught up.</div>');
   }
 
   // Which summary sections are collapsed -- remembered on this device only.
