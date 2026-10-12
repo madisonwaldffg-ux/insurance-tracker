@@ -411,6 +411,18 @@
   .todo-checks li.checked label { color: var(--text-muted); text-decoration: line-through; }
   .todo-x { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 15px; padding: 0 4px; }
   .todo-x:hover { color: var(--danger); }
+  .todo-when { display: block; font-size: 12px; color: var(--text-muted); text-decoration: none; }
+  .todo-checks li.checked .todo-when { display: none; }
+  .todo-checks li.waiting label { color: var(--text-secondary); }
+  .due-tag { flex: none; font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+    background: rgba(127,127,127,.12); color: var(--text-secondary); align-self: center; }
+  .due-tag.late { background: var(--danger-soft); color: var(--danger); }
+  .due-tag.today { background: rgba(214,140,20,.16); color: #b26d00; }
+  .due-tag.soon { background: var(--series-1-soft); color: var(--series-1); }
+  .due-tag.wait { background: transparent; border: 1px dashed var(--baseline); color: var(--text-muted); font-weight: 500; }
+  .todo-summary { display: inline-flex; gap: 6px; }
+  .todo-add input.todo-due-in { width: 150px; flex: none; }
+  @media (max-width: 560px) { .todo-add input.todo-due-in { width: 130px; } }
   .todo-restore { background: none; border: none; padding: 2px 0 6px; font: inherit; font-size: 12.5px;
     color: var(--series-1); cursor: pointer; }
   .todo-restore:hover { text-decoration: underline; }
@@ -604,6 +616,7 @@
   <div class="card" id="todoCard">
     <div class="todo-head">
       <h2>Client to-dos <span class="hint" id="todoCount"></span></h2>
+      <span class="todo-summary" id="todoSummary"></span>
       <div class="todo-tools">
         <div class="seg" id="todoFilter">
           <button type="button" data-f="open" class="on">Open</button>
@@ -1046,14 +1059,49 @@
   }
 
   /* ---------- Client to-dos ---------- */
-  // The standard after-the-sale checklist every deal gets.
+  // The standard after-the-sale checklist every deal gets, in the order it happens.
+  // Deadlines:
+  //   cement  -> 1-2 days after the deal is submitted (due submit + 2 days)
+  //   bene    -> on the cement call or a later follow-up (due submit + 7 days)
+  //   updates -> only once the policy is issued (due issue/effective date + 3 days)
   var TODO_STEPS = [
-    ["cement", "Cement call with approval update and give policy info"],
-    ["updates", "Policy updates needed (beneficiaries, coverage amount, etc.)"],
-    ["bene", "Collect beneficiaries or emergency contacts"]
+    ["cement", "Cement call with approval update and give policy info", "1–2 days after submitting"],
+    ["bene", "Collect beneficiaries or emergency contacts", "On the cement call or a follow-up"],
+    ["updates", "Policy updates needed (beneficiaries, coverage amount, etc.)", "After the policy is issued"]
   ];
   var todoFilter = "open";
   var todoQuery = "";
+
+  function addDays(ymd, n) {
+    var p = String(ymd || "").split("-");
+    if (p.length < 3) return null;
+    var dt = new Date(+p[0], +p[1] - 1, +p[2] + n);
+    return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+  }
+  function daysFromToday(ymd) {
+    var p = String(ymd || "").split("-");
+    if (p.length < 3) return null;
+    var t = new Date(); t = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    return Math.round((new Date(+p[0], +p[1] - 1, +p[2]) - t) / 86400000);
+  }
+  // Due date for a standard step, or { waiting: true } when it can't start yet.
+  function stepDue(d, key) {
+    if (key === "cement") return { due: addDays(d.date, 2) };
+    if (key === "bene") return { due: addDays(d.date, 7) };
+    if (key === "updates") {
+      if (d.status !== "Issued") return { waiting: true };
+      return { due: addDays(d.issuedDate || d.date, 3) };
+    }
+    return {};
+  }
+  function dueTag(info) {
+    if (info.waiting) return '<span class="due-tag wait">Waiting on issue</span>';
+    if (!info.due) return "";
+    var n = daysFromToday(info.due);
+    var cls = n < 0 ? "late" : n === 0 ? "today" : n <= 2 ? "soon" : "";
+    var txt = n < 0 ? "Overdue " + (-n) + "d" : n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : "Due " + fmtDay(info.due);
+    return '<span class="due-tag ' + cls + '" title="Due ' + esc(info.due) + '">' + txt + "</span>";
+  }
 
   // Standard steps removed for one client live in d.todoHidden (restorable).
   function todoSteps(d) {
@@ -1068,11 +1116,38 @@
     return { done: done, total: total, complete: done === total };
   }
   function todoDead(d) { return d.status === "Declined" || d.status === "Cancelled"; }
+  // Earliest deadline among this client's unchecked items (null if none dated).
+  function nextDue(d) {
+    var t = d.todo || {}, best = null;
+    todoSteps(d).forEach(function (st) {
+      if (t[st[0]]) return;
+      var i = stepDue(d, st[0]);
+      if (i.due && (!best || i.due < best)) best = i.due;
+    });
+    (d.tasks || []).forEach(function (x) {
+      if (!x.done && x.due && (!best || x.due < best)) best = x.due;
+    });
+    return best;
+  }
 
   function renderTodos() {
-    var all = state.deals.slice().sort(function (a, b) { return byDate(b, a); });
+    // Most urgent first: earliest open deadline, then newest sale.
+    var all = state.deals.slice().sort(function (a, b) {
+      var na = todoDead(a) ? null : nextDue(a), nb = todoDead(b) ? null : nextDue(b);
+      if (na && nb && na !== nb) return na < nb ? -1 : 1;
+      if (na && !nb) return -1;
+      if (nb && !na) return 1;
+      return byDate(b, a);
+    });
     var q = todoQuery.toLowerCase();
-    var openN = all.filter(function (d) { return !todoDead(d) && !todoProgress(d).complete; }).length;
+    var live = all.filter(function (d) { return !todoDead(d) && !todoProgress(d).complete; });
+    var late = 0, today = 0;
+    live.forEach(function (d) {
+      var n = nextDue(d);
+      if (!n) return;
+      var k = daysFromToday(n);
+      if (k < 0) late++; else if (k === 0) today++;
+    });
     var list = all.filter(function (d) {
       var p = todoProgress(d);
       if (todoFilter === "open" && (todoDead(d) || p.complete)) return false;
@@ -1080,26 +1155,36 @@
       if (q && String(d.client || "").toLowerCase().indexOf(q) === -1) return false;
       return true;
     });
-    $("todoCount").textContent = openN ? "(" + openN + " open)" : "";
+    $("todoCount").textContent = live.length ? "(" + live.length + " open)" : "";
+    $("todoSummary").innerHTML =
+      (late ? '<span class="due-tag late">' + late + " client" + (late === 1 ? "" : "s") + " overdue</span>" : "") +
+      (today ? '<span class="due-tag today">' + today + " due today</span>" : "");
     $("todoList").innerHTML = list.map(function (d) {
-      var p = todoProgress(d), t = d.todo || {};
+      var p = todoProgress(d), t = d.todo || {}, dead = todoDead(d);
       var chipCls = String(d.status || "").toLowerCase();
-      var meta = [d.carrier, d.policy, d.ap != null ? money(d.ap) + " AP" : "", d.date ? "Sold " + fmtDay(d.date) : "",
+      var meta = [d.carrier, d.policy, d.ap != null ? money(d.ap) + " AP" : "", d.date ? "Submitted " + fmtDay(d.date) : "",
+                  d.status === "Issued" && d.issuedDate ? "Effective " + fmtDay(d.issuedDate) : "",
                   d.policyNum ? "Policy # " + d.policyNum : ""].filter(Boolean).map(esc).join(" · ");
       var steps = todoSteps(d).map(function (st) {
         var on = !!t[st[0]], cid = "td-" + d.id + "-" + st[0];
-        return '<li class="' + (on ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
+        var info = stepDue(d, st[0]);
+        return '<li class="' + (on ? "checked" : "") + (info.waiting && !on ? " waiting" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
           '" data-step="' + st[0] + '"' + (on ? " checked" : "") + '><label for="' + cid + '">' + esc(st[1]) +
-          '</label><button type="button" class="todo-x" title="Remove for this client" data-deal="' + d.id + '" data-hide-step="' + st[0] + '">&times;</button></li>';
+          '<span class="todo-when">' + esc(st[2]) + "</span></label>" + (on || dead ? "" : dueTag(info)) +
+          '<button type="button" class="todo-x" title="Remove for this client" data-deal="' + d.id + '" data-hide-step="' + st[0] + '">&times;</button></li>';
       }).join("");
       var hiddenN = TODO_STEPS.length - todoSteps(d).length;
       var restore = hiddenN ? '<button type="button" class="todo-restore" data-deal="' + d.id + '" data-restore="1">Restore ' +
         hiddenN + " removed standard item" + (hiddenN === 1 ? "" : "s") + "</button>" : "";
-      var extra = (d.tasks || []).map(function (x) {
+      var extra = (d.tasks || []).slice().sort(function (a, b) {
+        if (a.due && b.due) return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
+        return a.due ? -1 : b.due ? 1 : 0;
+      }).map(function (x) {
         var cid = "tt-" + d.id + "-" + x.id;
         return '<li class="' + (x.done ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
-          '" data-task="' + x.id + '"' + (x.done ? " checked" : "") + '><label for="' + cid + '">' + esc(x.text) +
-          '</label><button type="button" class="todo-x" title="Remove task" data-deal="' + d.id + '" data-del-task="' + x.id + '">&times;</button></li>';
+          '" data-task="' + x.id + '"' + (x.done ? " checked" : "") + '><label for="' + cid + '">' + esc(x.text) + "</label>" +
+          (x.done || dead ? "" : dueTag({ due: x.due })) +
+          '<button type="button" class="todo-x" title="Remove task" data-deal="' + d.id + '" data-del-task="' + x.id + '">&times;</button></li>';
       }).join("");
       var pctW = p.total ? Math.round(p.done / p.total * 100) : 0;
       return '<div class="todo-item' + (p.complete ? " all-done" : "") + '">' +
@@ -1112,6 +1197,7 @@
         '<ul class="todo-checks">' + steps + extra + "</ul>" +
         (p.total ? "" : '<div class="muted" style="font-size:13px;padding:4px 0">No tasks for this client.</div>') + restore +
         '<form class="todo-add" data-deal="' + d.id + '"><input type="text" placeholder="Add a task for this client" maxlength="200">' +
+          '<input type="date" class="todo-due-in" title="Deadline (optional)">' +
           '<button type="submit" class="btn secondary small">Add</button></form>' +
         '<label class="todo-notes-label" for="tn-' + d.id + '">Notes<span class="todo-saved" id="tns-' + d.id + '">Saved</span></label>' +
         '<textarea class="notes-box" id="tn-' + d.id + '" data-notes="' + d.id + '" rows="3" placeholder="Notes for this client">' + esc(d.notes) + "</textarea>" +
@@ -1174,13 +1260,14 @@
     var f = ev.target.closest("form.todo-add");
     if (!f) return;
     ev.preventDefault();
-    var inp = f.querySelector("input"), text = inp.value.trim();
+    var inp = f.querySelector('input[type="text"]'), text = inp.value.trim();
+    var dueIn = f.querySelector('input[type="date"]');
     var d = findDeal(f.getAttribute("data-deal"));
     if (!text || !d) return;
-    d.tasks = (d.tasks || []).concat([{ id: uid(), text: text, done: false }]);
+    d.tasks = (d.tasks || []).concat([{ id: uid(), text: text, done: false, due: (dueIn && dueIn.value) || "" }]);
     save();
     renderTodos();
-    var again = document.querySelector('form.todo-add[data-deal="' + d.id + '"] input');
+    var again = document.querySelector('form.todo-add[data-deal="' + d.id + '"] input[type="text"]');
     if (again) again.focus();
   });
   // Notes save as you type (debounced) without re-rendering, so the cursor stays put.
