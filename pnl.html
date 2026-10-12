@@ -411,6 +411,9 @@
   .todo-checks li.checked label { color: var(--text-muted); text-decoration: line-through; }
   .todo-x { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 15px; padding: 0 4px; }
   .todo-x:hover { color: var(--danger); }
+  .todo-restore { background: none; border: none; padding: 2px 0 6px; font: inherit; font-size: 12.5px;
+    color: var(--series-1); cursor: pointer; }
+  .todo-restore:hover { text-decoration: underline; }
   .todo-add { display: flex; gap: 8px; margin: 6px 0 10px; }
   .todo-add input { flex: 1; min-width: 0; }
   .todo-notes-label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
@@ -1052,12 +1055,17 @@
   var todoFilter = "open";
   var todoQuery = "";
 
+  // Standard steps removed for one client live in d.todoHidden (restorable).
+  function todoSteps(d) {
+    var hid = d.todoHidden || {};
+    return TODO_STEPS.filter(function (st) { return !hid[st[0]]; });
+  }
   function todoProgress(d) {
-    var t = d.todo || {}, tasks = d.tasks || [];
-    var total = TODO_STEPS.length + tasks.length, done = 0;
-    TODO_STEPS.forEach(function (st) { if (t[st[0]]) done++; });
+    var t = d.todo || {}, tasks = d.tasks || [], steps = todoSteps(d);
+    var total = steps.length + tasks.length, done = 0;
+    steps.forEach(function (st) { if (t[st[0]]) done++; });
     tasks.forEach(function (x) { if (x.done) done++; });
-    return { done: done, total: total, complete: total > 0 && done === total };
+    return { done: done, total: total, complete: done === total };
   }
   function todoDead(d) { return d.status === "Declined" || d.status === "Cancelled"; }
 
@@ -1078,11 +1086,15 @@
       var chipCls = String(d.status || "").toLowerCase();
       var meta = [d.carrier, d.policy, d.ap != null ? money(d.ap) + " AP" : "", d.date ? "Sold " + fmtDay(d.date) : "",
                   d.policyNum ? "Policy # " + d.policyNum : ""].filter(Boolean).map(esc).join(" · ");
-      var steps = TODO_STEPS.map(function (st) {
+      var steps = todoSteps(d).map(function (st) {
         var on = !!t[st[0]], cid = "td-" + d.id + "-" + st[0];
         return '<li class="' + (on ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
-          '" data-step="' + st[0] + '"' + (on ? " checked" : "") + '><label for="' + cid + '">' + esc(st[1]) + "</label></li>";
+          '" data-step="' + st[0] + '"' + (on ? " checked" : "") + '><label for="' + cid + '">' + esc(st[1]) +
+          '</label><button type="button" class="todo-x" title="Remove for this client" data-deal="' + d.id + '" data-hide-step="' + st[0] + '">&times;</button></li>';
       }).join("");
+      var hiddenN = TODO_STEPS.length - todoSteps(d).length;
+      var restore = hiddenN ? '<button type="button" class="todo-restore" data-deal="' + d.id + '" data-restore="1">Restore ' +
+        hiddenN + " removed standard item" + (hiddenN === 1 ? "" : "s") + "</button>" : "";
       var extra = (d.tasks || []).map(function (x) {
         var cid = "tt-" + d.id + "-" + x.id;
         return '<li class="' + (x.done ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
@@ -1098,6 +1110,7 @@
         "</div>" +
         '<div class="todo-bar' + (p.complete ? " done" : "") + '"><div style="width:' + pctW + '%"></div></div>' +
         '<ul class="todo-checks">' + steps + extra + "</ul>" +
+        (p.total ? "" : '<div class="muted" style="font-size:13px;padding:4px 0">No tasks for this client.</div>') + restore +
         '<form class="todo-add" data-deal="' + d.id + '"><input type="text" placeholder="Add a task for this client" maxlength="200">' +
           '<button type="submit" class="btn secondary small">Add</button></form>' +
         '<label class="todo-notes-label" for="tn-' + d.id + '">Notes<span class="todo-saved" id="tns-' + d.id + '">Saved</span></label>' +
@@ -1142,11 +1155,18 @@
     renderTodos();
   });
   $("todoList").addEventListener("click", function (ev) {
-    var b = ev.target.closest("[data-del-task]");
+    var b = ev.target.closest("[data-del-task], [data-hide-step], [data-restore]");
     if (!b) return;
     var d = findDeal(b.getAttribute("data-deal"));
     if (!d) return;
-    d.tasks = (d.tasks || []).filter(function (x) { return x.id !== b.getAttribute("data-del-task"); });
+    if (b.hasAttribute("data-hide-step")) {
+      d.todoHidden = Object.assign({}, d.todoHidden || {});
+      d.todoHidden[b.getAttribute("data-hide-step")] = true;
+    } else if (b.hasAttribute("data-restore")) {
+      delete d.todoHidden;
+    } else {
+      d.tasks = (d.tasks || []).filter(function (x) { return x.id !== b.getAttribute("data-del-task"); });
+    }
     save();
     renderTodos();
   });
