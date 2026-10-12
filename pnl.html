@@ -372,6 +372,52 @@
   .paid-yes { color: var(--good); font-weight: 700; }
   .paid-no { color: var(--text-muted); }
 
+  /* ---------- bigger notes box in the deal form ---------- */
+  .field.full { grid-column: 1 / -1; width: 100%; }
+  textarea.notes-box { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--page);
+    border: 1px solid var(--baseline); border-radius: 7px; padding: 8px 10px; width: 100%; min-height: 96px;
+    resize: vertical; line-height: 1.45; }
+  .dd-notes { flex-basis: 100%; }
+  .dd-notes .dd-v { white-space: pre-wrap; }
+
+  /* ---------- Client to-dos view (pnl.html#todos) ---------- */
+  body:not(.view-todos) #todoCard { display: none; }
+  body.view-todos .wrap > .card:not(#todoCard), body.view-todos #tiles,
+  body.view-todos .month-nav { display: none !important; }
+  .todo-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .todo-head h2 { margin-bottom: 0; }
+  .todo-tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--baseline); border-radius: 8px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border: none; cursor: pointer;
+    background: transparent; color: var(--text-secondary); }
+  .seg button.on { background: var(--series-1); color: #fff; }
+  .todo-search { width: 180px; }
+  .todo-list { display: flex; flex-direction: column; gap: 12px; }
+  .todo-item { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface-1); }
+  .todo-item.all-done { opacity: .72; }
+  .todo-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+  .todo-name { font-weight: 650; font-size: 15px; color: var(--text-primary); }
+  .todo-meta { font-size: 12.5px; color: var(--text-muted); flex-basis: 100%; }
+  .todo-prog { margin-left: auto; font-size: 12px; font-weight: 650; color: var(--text-secondary);
+    background: rgba(127,127,127,.12); padding: 2px 9px; border-radius: 999px; }
+  .todo-prog.done { background: var(--good-soft); color: var(--good); }
+  .todo-bar { height: 4px; border-radius: 4px; background: rgba(127,127,127,.15); margin: 10px 0 8px; overflow: hidden; }
+  .todo-bar > div { height: 100%; background: var(--series-1); border-radius: 4px; }
+  .todo-bar.done > div { background: var(--good); }
+  .todo-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .todo-checks li { display: flex; align-items: flex-start; gap: 9px; padding: 5px 0; font-size: 14px; color: var(--text-primary); }
+  .todo-checks input[type="checkbox"] { width: 17px; height: 17px; margin-top: 1px; flex: none; accent-color: var(--series-1); cursor: pointer; }
+  .todo-checks label { cursor: pointer; flex: 1; }
+  .todo-checks li.checked label { color: var(--text-muted); text-decoration: line-through; }
+  .todo-x { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 15px; padding: 0 4px; }
+  .todo-x:hover { color: var(--danger); }
+  .todo-add { display: flex; gap: 8px; margin: 6px 0 10px; }
+  .todo-add input { flex: 1; min-width: 0; }
+  .todo-notes-label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .todo-saved { font-size: 11.5px; color: var(--good); margin-left: 6px; opacity: 0; transition: opacity .2s; }
+  .todo-saved.show { opacity: 1; }
+  @media (max-width: 560px) { .todo-tools { margin-left: 0; width: 100%; } .todo-search { flex: 1; width: auto; } }
+
   /* ---------- Add-a-deal slide-over ---------- */
   .deal-scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 90; display: none; }
   .deal-scrim.show { display: block; }
@@ -425,11 +471,21 @@
   <nav class="hub-tabs">
     <a href="dashboard.html" class="hub-tab">Dashboard</a>
     <a href="index.html" class="hub-tab">Activity</a>
-    <a href="pnl.html" class="hub-tab is-active">Deals &amp; PNL</a>
+    <a href="pnl.html" class="hub-tab is-active" id="pnlTab">Deals &amp; PNL</a>
+    <a href="pnl.html#todos" class="hub-tab" id="todosTab">Client to-dos</a>
     <a href="carriers.html" class="hub-tab">Carrier links</a>
     <a href="leaderboard.html" class="hub-tab" id="boardTab" style="display:none">Leaderboard</a>
         <a href="owner/" class="hub-tab" id="ownerTab" style="display:none">Agency</a>
   </nav>
+  <script>
+    // Client to-dos is a view of this page (it shares the same deals and sync).
+    // Mark the right tab active before hub-shell turns the nav into the sidebar.
+    if (location.hash === "#todos") {
+      document.body.classList.add("view-todos");
+      document.getElementById("pnlTab").classList.remove("is-active");
+      document.getElementById("todosTab").classList.add("is-active");
+    }
+  </script>
   <header>
     <div>
       <h1 data-brand-name>Deals &amp; PNL</h1>
@@ -503,8 +559,8 @@
           <div class="field"><label for="d-state">Client's state</label><select id="d-state" class="wide"><option value="">Select state</option></select></div>
           <div class="field"><label for="d-beneficiary">Beneficiary</label><input type="text" id="d-beneficiary" class="wide" placeholder="Name / relationship"></div>
           <div class="field"><label for="d-policy-num">Policy number</label><input type="text" id="d-policy-num" class="wide" placeholder="Policy #"></div>
-          <div class="field"><label for="d-notes">Notes</label><input type="text" id="d-notes" class="wide" placeholder=""></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-referrals"> Referrals collected</label></div>
+          <div class="field full"><label for="d-notes">Notes</label><textarea id="d-notes" class="notes-box" rows="4" placeholder="Anything to remember about this client"></textarea></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-paid"> Paid</label></div>
           <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="d-reqs"> Requirements</label></div>
         </div>
@@ -541,6 +597,22 @@
     </div>
   </div>
   </aside>
+
+  <div class="card" id="todoCard">
+    <div class="todo-head">
+      <h2>Client to-dos <span class="hint" id="todoCount"></span></h2>
+      <div class="todo-tools">
+        <div class="seg" id="todoFilter">
+          <button type="button" data-f="open" class="on">Open</button>
+          <button type="button" data-f="done">Done</button>
+          <button type="button" data-f="all">All</button>
+        </div>
+        <input type="text" id="todoSearch" class="todo-search" placeholder="Search clients">
+      </div>
+    </div>
+    <div class="todo-list" id="todoList"></div>
+    <div class="empty" id="todoEmpty" style="display:none"></div>
+  </div>
 
   <div class="card">
     <h2>Deals <span class="hint" id="dealCount"></span></h2>
@@ -893,7 +965,7 @@
       var detail = isCrossIn ? "" :
         '<tr class="deal-detail" hidden><td></td><td colspan="9"><div class="dd-grid">' +
         detailBits.map(function (b) {
-          return '<div><span class="dd-k">' + b[0] + '</span><span class="dd-v">' + b[1] + "</span></div>";
+          return '<div' + (b[0] === "Notes" ? ' class="dd-notes"' : "") + '><span class="dd-k">' + b[0] + '</span><span class="dd-v">' + b[1] + "</span></div>";
         }).join("") + "</div></td></tr>";
 
       return "<tr" + (isCrossIn ? ' class="cross-in"' : ' class="deal-row"') + ">" +
@@ -969,6 +1041,173 @@
     $("expEmpty").style.display = exps.length ? "none" : "";
     $("expCount").textContent = exps.length ? "(" + exps.length + " · " + money(sum(exps, function (e) { return e.price; })) + ")" : "";
   }
+
+  /* ---------- Client to-dos ---------- */
+  // The standard after-the-sale checklist every deal gets.
+  var TODO_STEPS = [
+    ["cement", "Cement call with approval update and give policy info"],
+    ["updates", "Policy updates needed (beneficiaries, coverage amount, etc.)"],
+    ["bene", "Collect beneficiaries or emergency contacts"]
+  ];
+  var todoFilter = "open";
+  var todoQuery = "";
+
+  function todoProgress(d) {
+    var t = d.todo || {}, tasks = d.tasks || [];
+    var total = TODO_STEPS.length + tasks.length, done = 0;
+    TODO_STEPS.forEach(function (st) { if (t[st[0]]) done++; });
+    tasks.forEach(function (x) { if (x.done) done++; });
+    return { done: done, total: total, complete: total > 0 && done === total };
+  }
+  function todoDead(d) { return d.status === "Declined" || d.status === "Cancelled"; }
+
+  function renderTodos() {
+    var all = state.deals.slice().sort(function (a, b) { return byDate(b, a); });
+    var q = todoQuery.toLowerCase();
+    var openN = all.filter(function (d) { return !todoDead(d) && !todoProgress(d).complete; }).length;
+    var list = all.filter(function (d) {
+      var p = todoProgress(d);
+      if (todoFilter === "open" && (todoDead(d) || p.complete)) return false;
+      if (todoFilter === "done" && !p.complete) return false;
+      if (q && String(d.client || "").toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+    $("todoCount").textContent = openN ? "(" + openN + " open)" : "";
+    $("todoList").innerHTML = list.map(function (d) {
+      var p = todoProgress(d), t = d.todo || {};
+      var chipCls = String(d.status || "").toLowerCase();
+      var meta = [d.carrier, d.policy, d.ap != null ? money(d.ap) + " AP" : "", d.date ? "Sold " + fmtDay(d.date) : "",
+                  d.policyNum ? "Policy # " + d.policyNum : ""].filter(Boolean).map(esc).join(" · ");
+      var steps = TODO_STEPS.map(function (st) {
+        var on = !!t[st[0]], cid = "td-" + d.id + "-" + st[0];
+        return '<li class="' + (on ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
+          '" data-step="' + st[0] + '"' + (on ? " checked" : "") + '><label for="' + cid + '">' + esc(st[1]) + "</label></li>";
+      }).join("");
+      var extra = (d.tasks || []).map(function (x) {
+        var cid = "tt-" + d.id + "-" + x.id;
+        return '<li class="' + (x.done ? "checked" : "") + '"><input type="checkbox" id="' + cid + '" data-deal="' + d.id +
+          '" data-task="' + x.id + '"' + (x.done ? " checked" : "") + '><label for="' + cid + '">' + esc(x.text) +
+          '</label><button type="button" class="todo-x" title="Remove task" data-deal="' + d.id + '" data-del-task="' + x.id + '">&times;</button></li>';
+      }).join("");
+      var pctW = p.total ? Math.round(p.done / p.total * 100) : 0;
+      return '<div class="todo-item' + (p.complete ? " all-done" : "") + '">' +
+        '<div class="todo-top"><span class="todo-name">' + (esc(d.client) || "(no name)") + "</span>" +
+          '<span class="status-chip ' + chipCls + '">' + esc(d.status || "Submitted") + "</span>" +
+          '<span class="todo-prog' + (p.complete ? " done" : "") + '">' + (p.complete ? "&#10003; Done" : p.done + "/" + p.total) + "</span>" +
+          (meta ? '<div class="todo-meta">' + meta + "</div>" : "") +
+        "</div>" +
+        '<div class="todo-bar' + (p.complete ? " done" : "") + '"><div style="width:' + pctW + '%"></div></div>' +
+        '<ul class="todo-checks">' + steps + extra + "</ul>" +
+        '<form class="todo-add" data-deal="' + d.id + '"><input type="text" placeholder="Add a task for this client" maxlength="200">' +
+          '<button type="submit" class="btn secondary small">Add</button></form>' +
+        '<label class="todo-notes-label" for="tn-' + d.id + '">Notes<span class="todo-saved" id="tns-' + d.id + '">Saved</span></label>' +
+        '<textarea class="notes-box" id="tn-' + d.id + '" data-notes="' + d.id + '" rows="3" placeholder="Notes for this client">' + esc(d.notes) + "</textarea>" +
+      "</div>";
+    }).join("");
+    var empty = $("todoEmpty");
+    if (list.length) { empty.style.display = "none"; }
+    else {
+      empty.style.display = "";
+      empty.textContent = !state.deals.length ? "No deals yet. Add a deal and its checklist shows up here."
+        : q ? "No clients match that search."
+        : todoFilter === "open" ? "All caught up. Every client's checklist is done."
+        : todoFilter === "done" ? "No finished checklists yet." : "No deals yet.";
+    }
+  }
+
+  function findDeal(id) { return state.deals.find(function (x) { return x.id === id; }); }
+
+  $("todoFilter").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-f]");
+    if (!b) return;
+    todoFilter = b.getAttribute("data-f");
+    [].forEach.call(this.querySelectorAll("button"), function (x) { x.classList.toggle("on", x === b); });
+    renderTodos();
+  });
+  $("todoSearch").addEventListener("input", function () { todoQuery = this.value.trim(); renderTodos(); });
+
+  $("todoList").addEventListener("change", function (ev) {
+    var el = ev.target;
+    if (!el.matches('input[type="checkbox"]')) return;
+    var d = findDeal(el.getAttribute("data-deal"));
+    if (!d) return;
+    if (el.hasAttribute("data-step")) {
+      d.todo = Object.assign({}, d.todo || {});
+      d.todo[el.getAttribute("data-step")] = el.checked;
+    } else {
+      var tk = (d.tasks || []).find(function (x) { return x.id === el.getAttribute("data-task"); });
+      if (tk) tk.done = el.checked;
+    }
+    save();
+    renderTodos();
+  });
+  $("todoList").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-del-task]");
+    if (!b) return;
+    var d = findDeal(b.getAttribute("data-deal"));
+    if (!d) return;
+    d.tasks = (d.tasks || []).filter(function (x) { return x.id !== b.getAttribute("data-del-task"); });
+    save();
+    renderTodos();
+  });
+  $("todoList").addEventListener("submit", function (ev) {
+    var f = ev.target.closest("form.todo-add");
+    if (!f) return;
+    ev.preventDefault();
+    var inp = f.querySelector("input"), text = inp.value.trim();
+    var d = findDeal(f.getAttribute("data-deal"));
+    if (!text || !d) return;
+    d.tasks = (d.tasks || []).concat([{ id: uid(), text: text, done: false }]);
+    save();
+    renderTodos();
+    var again = document.querySelector('form.todo-add[data-deal="' + d.id + '"] input');
+    if (again) again.focus();
+  });
+  // Notes save as you type (debounced) without re-rendering, so the cursor stays put.
+  var notesTimers = {};
+  $("todoList").addEventListener("input", function (ev) {
+    var ta = ev.target;
+    if (!ta.hasAttribute || !ta.hasAttribute("data-notes")) return;
+    var id = ta.getAttribute("data-notes");
+    clearTimeout(notesTimers[id]);
+    notesTimers[id] = setTimeout(function () {
+      var d = findDeal(id);
+      if (!d) return;
+      d.notes = ta.value;
+      save();
+      safeRender("deals", renderDeals);
+      var tag = document.getElementById("tns-" + id);
+      if (tag) { tag.classList.add("show"); setTimeout(function () { tag.classList.remove("show"); }, 1200); }
+    }, 600);
+  });
+
+  // Switch between the Deals & PNL view and the Client to-dos view without a reload.
+  function applyView() {
+    var todos = location.hash === "#todos";
+    document.body.classList.toggle("view-todos", todos);
+    [].forEach.call(document.querySelectorAll('a[href="pnl.html"], a[href="pnl.html#todos"]'), function (a) {
+      var isTodos = a.getAttribute("href") === "pnl.html#todos";
+      var on = isTodos === todos;
+      a.classList.toggle("on", on && a.classList.contains("nav"));
+      a.classList.toggle("is-active", on && a.classList.contains("hub-tab"));
+    });
+    document.body.classList.remove("rail-open");
+    // Retitle the page, unless a custom Hub name has taken over the title slot.
+    var h1 = document.querySelector("[data-brand-name]");
+    if (h1 && /^(Deals & PNL|Client to-dos)$/.test(h1.textContent.trim())) h1.textContent = todos ? "Client to-dos" : "Deals & PNL";
+    if (todos) { safeRender("todos", renderTodos); window.scrollTo(0, 0); }
+  }
+  window.addEventListener("hashchange", applyView);
+  // The rail's "Deals & PNL" link is a plain pnl.html href; while on #todos, switch in place.
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href="pnl.html"]');
+    if (!a || location.hash !== "#todos") return;
+    ev.preventDefault();
+    history.pushState(null, "", "pnl.html");
+    applyView();
+  });
+  window.addEventListener("popstate", applyView);
+  if (location.hash === "#todos") applyView();
 
   var roiScope = "month";
 
@@ -1066,6 +1305,7 @@
     safeRender("datalists", renderDatalists);
     safeRender("contractLevel", refreshContractLevel);
     safeRender("goal", renderGoal);
+    safeRender("todos", renderTodos);
   }
 
   /* ---------- month analytics: goal, funnel, trend ---------- */
@@ -1441,7 +1681,9 @@
     };
     if (editingId) {
       var i = state.deals.findIndex(function (x) { return x.id === editingId; });
-      if (i >= 0) state.deals[i] = rec;
+      // Merge over the old record so anything the form doesn't show (the to-do
+      // checklist, custom tasks) survives an edit.
+      if (i >= 0) state.deals[i] = Object.assign({}, state.deals[i], rec);
     } else {
       state.deals.push(rec);
     }
