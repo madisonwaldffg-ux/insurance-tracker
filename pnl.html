@@ -423,6 +423,25 @@
   .todo-summary { display: inline-flex; gap: 6px; }
   .todo-add input.todo-due-in { width: 150px; flex: none; }
   @media (max-width: 560px) { .todo-add input.todo-due-in { width: 130px; } }
+  .today-box { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+    background: rgba(127,127,127,.04); }
+  .today-head { font-weight: 650; font-size: 14px; color: var(--text-primary); margin-bottom: 8px; }
+  .today-clear { font-size: 13.5px; color: var(--good); }
+  .today-group + .today-group { margin-top: 10px; }
+  .today-gh { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+  .today-gh span { font-weight: 600; opacity: .8; }
+  .today-gh.late { color: var(--danger); }
+  .today-gh.today { color: #b26d00; }
+  .today-gh.soon { color: var(--series-1); }
+  .today-box ul { list-style: none; margin: 0; padding: 0; }
+  .today-box li { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 14px; border-bottom: 1px solid var(--border); }
+  .today-box li:last-child { border-bottom: none; }
+  .today-box input[type="checkbox"] { width: 17px; height: 17px; flex: none; accent-color: var(--series-1); cursor: pointer; }
+  .today-box label { flex: 1; cursor: pointer; color: var(--text-primary); min-width: 0; }
+  .today-client { font-size: 13px; font-weight: 600; color: var(--series-1); text-decoration: none; white-space: nowrap; }
+  .today-client:hover { text-decoration: underline; }
+  @media (max-width: 560px) { .today-box li { flex-wrap: wrap; } .today-box label { flex-basis: calc(100% - 30px); } .today-client { margin-left: 26px; } }
+  .todo-item.flash { box-shadow: 0 0 0 2px var(--series-1); transition: box-shadow .3s; }
   .todo-restore { background: none; border: none; padding: 2px 0 6px; font: inherit; font-size: 12.5px;
     color: var(--series-1); cursor: pointer; }
   .todo-restore:hover { text-decoration: underline; }
@@ -626,6 +645,7 @@
         <input type="text" id="todoSearch" class="todo-search" placeholder="Search clients">
       </div>
     </div>
+    <div class="today-box" id="todayBox"></div>
     <div class="todo-list" id="todoList"></div>
     <div class="empty" id="todoEmpty" style="display:none"></div>
   </div>
@@ -1130,7 +1150,46 @@
     return best;
   }
 
+  // Daily summary: every open, dated item across all clients, grouped by urgency.
+  function renderToday() {
+    var rows = [];
+    state.deals.forEach(function (d) {
+      if (todoDead(d)) return;
+      var t = d.todo || {};
+      todoSteps(d).forEach(function (st) {
+        if (t[st[0]]) return;
+        var info = stepDue(d, st[0]);
+        if (info.due) rows.push({ d: d, due: info.due, label: st[1], attr: 'data-step="' + st[0] + '"', key: st[0] });
+      });
+      (d.tasks || []).forEach(function (x) {
+        if (!x.done && x.due) rows.push({ d: d, due: x.due, label: x.text, attr: 'data-task="' + x.id + '"', key: x.id });
+      });
+    });
+    rows.sort(function (a, b) { return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
+    var groups = [
+      { name: "Overdue", cls: "late", test: function (n) { return n < 0; } },
+      { name: "Due today", cls: "today", test: function (n) { return n === 0; } },
+      { name: "Next 3 days", cls: "soon", test: function (n) { return n >= 1 && n <= 3; } }
+    ];
+    var html = groups.map(function (g) {
+      var mine = rows.filter(function (r) { return g.test(daysFromToday(r.due)); });
+      if (!mine.length) return "";
+      return '<div class="today-group"><div class="today-gh ' + g.cls + '">' + g.name + " <span>" + mine.length + "</span></div><ul>" +
+        mine.map(function (r) {
+          var cid = "ds-" + r.d.id + "-" + r.key;
+          return '<li><input type="checkbox" id="' + cid + '" data-deal="' + r.d.id + '" ' + r.attr + '>' +
+            '<label for="' + cid + '">' + esc(r.label) + "</label>" +
+            '<a href="#" class="today-client" data-jump="' + r.d.id + '">' + (esc(r.d.client) || "(no name)") + "</a>" +
+            dueTag({ due: r.due }) + "</li>";
+        }).join("") + "</ul></div>";
+    }).join("");
+    var todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    $("todayBox").innerHTML = '<div class="today-head">Today &middot; ' + esc(todayLabel) + "</div>" +
+      (html || '<div class="today-clear">Nothing overdue or due in the next 3 days. You\'re all caught up.</div>');
+  }
+
   function renderTodos() {
+    renderToday();
     // Most urgent first: earliest open deadline, then newest sale.
     var all = state.deals.slice().sort(function (a, b) {
       var na = todoDead(a) ? null : nextDue(a), nb = todoDead(b) ? null : nextDue(b);
@@ -1195,7 +1254,7 @@
       });
       var checks = items.map(function (it) { return it.html; }).join("");
       var pctW = p.total ? Math.round(p.done / p.total * 100) : 0;
-      return '<div class="todo-item' + (p.complete ? " all-done" : "") + '">' +
+      return '<div class="todo-item' + (p.complete ? " all-done" : "") + '" data-id="' + d.id + '">' +
         '<div class="todo-top"><span class="todo-name">' + (esc(d.client) || "(no name)") + "</span>" +
           '<span class="status-chip ' + chipCls + '">' + esc(d.status || "Submitted") + "</span>" +
           '<span class="todo-prog' + (p.complete ? " done" : "") + '">' + (p.complete ? "&#10003; Done" : p.done + "/" + p.total) + "</span>" +
@@ -1231,9 +1290,25 @@
     [].forEach.call(this.querySelectorAll("button"), function (x) { x.classList.toggle("on", x === b); });
     renderTodos();
   });
+  $("todayBox").addEventListener("click", function (ev) {
+    var a = ev.target.closest("[data-jump]");
+    if (!a) return;
+    ev.preventDefault();
+    var card = document.querySelector('.todo-item[data-id="' + a.getAttribute("data-jump") + '"]');
+    if (!card) {   // client is filtered out of the list below -- show everyone, then jump
+      todoFilter = "all"; todoQuery = ""; $("todoSearch").value = "";
+      [].forEach.call($("todoFilter").querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-f") === "all"); });
+      renderTodos();
+      card = document.querySelector('.todo-item[data-id="' + a.getAttribute("data-jump") + '"]');
+    }
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+      card.classList.add("flash"); setTimeout(function () { card.classList.remove("flash"); }, 1400);
+    }
+  });
   $("todoSearch").addEventListener("input", function () { todoQuery = this.value.trim(); renderTodos(); });
 
-  $("todoList").addEventListener("change", function (ev) {
+  function onTodoCheck(ev) {
     var el = ev.target;
     if (!el.matches('input[type="checkbox"]')) return;
     var d = findDeal(el.getAttribute("data-deal"));
@@ -1247,7 +1322,9 @@
     }
     save();
     renderTodos();
-  });
+  }
+  $("todoList").addEventListener("change", onTodoCheck);
+  $("todayBox").addEventListener("change", onTodoCheck);
   $("todoList").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-del-task], [data-hide-step], [data-restore]");
     if (!b) return;
