@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Underwriting</title>
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agent Hub">
+<script>
+  // ===== Cloud sync config (shared across the hub) =====
+  window.HUB_CLOUD = {
+    url: "https://bdydjbfuocxoaodeesgw.supabase.co",
+    anonKey: "sb_publishable_azBoNPTEiiW0YvgWCakh3A_VzZjCdIT",
+    // Set to true to hide self-signup (accounts then created by the owner in Supabase)
+    inviteOnly: false
+  };
+  try {
+    var savedTheme = localStorage.getItem("agentHub.theme.v1");
+    if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+  } catch (e) {}
+</script>
+<style>
+  :root {
+    --surface-1: #ffffff; --page: #eceef1; --text-primary: #10131a; --text-secondary: #52565f; --text-muted: #888d97; --grid: #dfe2e7; --baseline: #c2c6cd; --border: rgba(16,19,26,0.08); --card-shadow: 0 1px 3px rgba(16,19,26,0.06), 0 1px 2px rgba(16,19,26,0.08);
+    --series-1: #2a78d6; --series-1-soft: rgba(42,120,214,0.12); --good: #0e9e46; --good-soft: rgba(14,158,70,0.14);
+    --danger: #e0231e; --danger-soft: rgba(224,35,30,0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19; --page: #0d0d0d; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+      --text-muted: #898781; --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5; --series-1-soft: rgba(57,135,229,0.20); --good: #0ca30c; --good-soft: rgba(12,163,12,0.16);
+      --danger: #e66767; --danger-soft: rgba(230,103,103,0.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface-1: #1a1a19; --page: #0d0d0d; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #898781; --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5; --series-1-soft: rgba(57,135,229,0.20); --good: #0ca30c; --good-soft: rgba(12,163,12,0.16);
+    --danger: #e66767; --danger-soft: rgba(230,103,103,0.16);
+  }
+  :root[data-theme="light"] {
+    --surface-1: #ffffff; --page: #eceef1; --text-primary: #10131a; --text-secondary: #52565f; --text-muted: #888d97; --grid: #dfe2e7; --baseline: #c2c6cd; --border: rgba(16,19,26,0.08); --card-shadow: 0 1px 3px rgba(16,19,26,0.06), 0 1px 2px rgba(16,19,26,0.08);
+    --series-1: #2a78d6; --series-1-soft: rgba(42,120,214,0.12); --good: #0e9e46; --good-soft: rgba(14,158,70,0.14);
+    --danger: #e0231e; --danger-soft: rgba(224,35,30,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--page); color: var(--text-primary); line-height: 1.45; padding: 20px; }
+  .wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  header h1 { font-size: 20px; font-weight: 650; }
+  header .sub { color: var(--text-muted); font-size: 13px; }
+  .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; box-shadow: var(--card-shadow, none); }
+  .card h2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .card h2 .hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted); }
+
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: var(--text-muted); }
+  select, input[type="text"], input[type="url"], input[type="email"], input[type="password"] {
+    font: inherit; font-size: 14px; color: var(--text-primary); background: var(--page);
+    border: 1px solid var(--baseline); border-radius: 7px; padding: 7px 9px;
+  }
+  .btn { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--series-1); background: var(--series-1); color: #fff; cursor: pointer; }
+  .btn.secondary { background: transparent; color: var(--text-secondary); border-color: var(--baseline); }
+  .btn.small { padding: 6px 12px; font-size: 13px; }
+  .btn.icon { background: transparent; border-color: var(--baseline); color: var(--text-secondary); padding: 5px 10px; font-size: 14px; line-height: 1; }
+
+  /* Superseded by Settings > Appearance > Theme -- the header switch was a
+     second control for the same preference. Hidden rather than deleted:
+     every page mounts the settings gear relative to this element, and
+     updateThemeBtn() still writes to it. */
+  .theme-toggle { display: none !important; }
+  .theme-toggle { position: relative; width: 30px; height: 16px; flex: none; align-self: center; margin-left: 4px; border-radius: 999px; border: 1px solid var(--grid); background: transparent; cursor: pointer; padding: 0; opacity: 0.7; }
+  .theme-toggle:hover { opacity: 1; }
+  .theme-toggle .knob { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); transition: left .15s ease, background .15s ease; }
+  .theme-toggle.dark { background: var(--grid); border-color: var(--grid); }
+  .theme-toggle.dark .knob { left: 16px; background: var(--text-secondary); }
+
+  .hub-tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; align-self: flex-start; }
+  .hub-tab { font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; padding: 6px 15px; border-radius: 7px; color: var(--text-secondary); white-space: nowrap; }
+  .hub-tab.is-active { background: var(--series-1); color: #fff; }
+  .hub-tab:not(.is-active):hover { color: var(--text-primary); }
+
+  .auth-gate { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; background: var(--page); padding: 20px; }
+  .auth-gate.show { display: flex; }
+  .auth-card { width: 100%; max-width: 360px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+  .auth-card h2 { font-size: 18px; font-weight: 650; }
+  .auth-card .auth-sub { font-size: 13px; color: var(--text-muted); margin-top: -8px; }
+  .auth-card label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .auth-card input { width: 100%; }
+  .auth-err { color: var(--danger); font-size: 13px; min-height: 16px; }
+  .auth-switch { font-size: 13px; color: var(--text-secondary); text-align: center; }
+  .auth-switch a { color: var(--series-1); cursor: pointer; text-decoration: underline; }
+  .acct-box { display: none; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+  .acct-box.show { display: flex; }
+  #acctEmail { display: none; }
+  .sync-pill { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--grid); color: var(--text-muted); white-space: nowrap; }
+  .sync-pill.saving { color: var(--series-1); border-color: var(--series-1); }
+  .sync-pill.saved { color: var(--good); border-color: var(--good); }
+  .sync-pill.err { color: var(--danger); border-color: var(--danger); }
+
+  /* ---------- Carrier cards ---------- */
+  .npn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .npn-row label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .npn-row input { width: 180px; }
+  .carriers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .carrier-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .carrier-card.sortable-ghost { opacity: .4; }
+  .carrier-card.sortable-chosen { border-color: var(--series-1); }
+  .carrier-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .carrier-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .drag-handle { cursor: grab; color: var(--text-muted); font-size: 15px; line-height: 1; padding: 2px 3px; flex: none; user-select: none; touch-action: none; }
+  .drag-handle:active { cursor: grabbing; }
+  .carrier-name { font-size: 16px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .carrier-actions { display: flex; gap: 5px; flex: none; }
+  .cred { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--grid); }
+  .cred:first-of-type { border-top: none; }
+  .cred-label { width: 76px; flex: none; color: var(--text-muted); font-size: 12px; }
+  .cred-val { flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; color: var(--text-primary); text-decoration: none; }
+  a.cred-val:hover { text-decoration: underline; color: var(--series-1); }
+  .cred-val.mask { letter-spacing: 2px; }
+  .cred-val.empty { color: var(--text-muted); font-style: italic; letter-spacing: 0; }
+  .cred-btns { display: flex; gap: 4px; flex: none; }
+  .mini { font: inherit; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--baseline); background: transparent; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+  .mini:hover { color: var(--text-primary); border-color: var(--text-muted); }
+  .mini.copied { color: var(--good); border-color: var(--good); }
+  .mini.open { color: var(--series-1); border-color: var(--series-1); text-decoration: none; }
+  .empty { color: var(--text-muted); font-size: 13.5px; padding: 10px 0; }
+
+  /* ---------- Add / edit form ---------- */
+  .form-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .form-grid .field input { width: 160px; }
+  .form-grid .field input.wide { width: 260px; }
+  .pw-wrap { display: flex; gap: 6px; }
+  .security-note { font-size: 12px; color: var(--text-muted); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--grid); }
+
+  /* ---------- underwriting page ---------- */
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .card-head h2 { margin-bottom: 0; }
+  .wiz-actions { display: flex; gap: 8px; }
+  .wiz-note { font-size: 13px; color: var(--text-muted); margin: -4px 0 12px; }
+  .muted { color: var(--text-muted); font-weight: 400; }
+  .wiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px 16px; }
+  .wiz-grid .field { display: flex; flex-direction: column; gap: 5px; }
+  .wiz-grid .field.full { grid-column: 1 / -1; }
+  .wiz-grid label { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+  .wiz-grid input, .wiz-grid select, .wiz-grid textarea { width: 100%; box-sizing: border-box; }
+  .wiz-grid textarea, .g-edit textarea { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--page); border: 1px solid var(--baseline);
+    border-radius: 7px; padding: 8px 10px; resize: vertical; line-height: 1.45; }
+  input[type="number"] { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--page); border: 1px solid var(--baseline); border-radius: 7px; padding: 7px 9px; }
+  .hw { display: flex; align-items: center; gap: 5px; }
+  .hw input { width: 58px !important; flex: none; }
+  .hw input#w-lbs { width: 72px !important; }
+  .hw span { font-size: 12.5px; color: var(--text-muted); }
+  .bmi { font-size: 12.5px; color: var(--series-1); font-weight: 600; min-height: 16px; }
+  .yn { display: inline-flex; border: 1px solid var(--baseline); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+  .yn button { font: inherit; font-size: 13px; font-weight: 650; padding: 6px 16px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; }
+  .yn button + button { border-left: 1px solid var(--baseline); }
+  .yn button.on { background: var(--series-1); color: #fff; }
+  .yn-detail { margin-top: 2px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: inherit; font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--baseline);
+    background: transparent; color: var(--text-muted); cursor: pointer; }
+  .chip.on { background: var(--series-1-soft); border-color: var(--series-1); color: var(--series-1); }
+  .guide-find { width: 240px; }
+  .g-carrier { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: var(--surface-1); }
+  .g-carrier > summary { cursor: pointer; padding: 11px 14px; display: flex; align-items: baseline; gap: 10px; font-size: 14.5px; color: var(--text-primary); }
+  .g-carrier > summary .muted { font-size: 12.5px; margin-left: auto; }
+  .g-prods { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .g-prod { border-radius: 8px; }
+  .g-prod.open { background: rgba(127,127,127,.05); }
+  .g-prod-btn { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; font: inherit; font-size: 14px; color: var(--text-primary);
+    text-align: left; padding: 8px 6px; cursor: pointer; border-radius: 8px; }
+  .g-prod-btn:hover { background: rgba(127,127,127,.07); }
+  .g-prod-btn .fold-chev { font-size: 9px; color: var(--text-muted); transform: rotate(-90deg); transition: transform .15s; display: inline-block; width: 10px; }
+  .g-prod-btn.open .fold-chev { transform: none; }
+  .g-badge { margin-left: auto; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--good-soft, rgba(14,158,70,.14)); color: var(--good, #0e9e46); }
+  .g-badge.empty { background: rgba(127,127,127,.12); color: var(--text-muted); }
+  .g-body { padding: 2px 10px 12px 26px; }
+  .g-sum { display: grid; grid-template-columns: 180px 1fr; gap: 6px 14px; margin: 0 0 10px; font-size: 13.5px; }
+  .g-sum dt { color: var(--text-muted); font-weight: 600; }
+  .g-sum dd { margin: 0; color: var(--text-primary); white-space: pre-wrap; }
+  .g-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  .g-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+  .g-edit-act { grid-column: 1 / -1; display: flex; gap: 8px; }
+  .g-empty { font-size: 13px; color: var(--text-muted); padding: 4px 14px 12px; }
+  @media (max-width: 640px) { .g-sum { grid-template-columns: 1fr; gap: 2px; } .g-sum dd { margin-bottom: 6px; } .g-edit { grid-template-columns: 1fr; } .guide-find { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="auth-gate" id="authGate">
+  <form class="auth-card" id="authForm">
+    <h2 id="authTitle">Log in</h2>
+    <p class="auth-sub">Your underwriting notes sync across all your devices.</p>
+    <div><label for="authEmail">Email</label><input type="email" id="authEmail" autocomplete="email" required></div>
+    <div><label for="authPass">Password</label><input type="password" id="authPass" autocomplete="current-password" required minlength="6"></div>
+    <div class="auth-err" id="authErr"></div>
+    <button type="submit" class="btn" id="authSubmit">Log in</button>
+    <div class="auth-switch" id="authSwitch"></div>
+  </form>
+</div>
+
+<div class="wrap">
+  <nav class="hub-tabs">
+    <a href="dashboard.html" class="hub-tab">Dashboard</a>
+    <a href="index.html" class="hub-tab">Activity</a>
+    <a href="pnl.html" class="hub-tab">Deals &amp; PNL</a>
+    <a href="pnl.html#todos" class="hub-tab">Client to-dos</a>
+    <a href="carriers.html" class="hub-tab">Carrier links</a>
+    <a href="underwriting.html" class="hub-tab is-active">Underwriting</a>
+    <a href="leaderboard.html" class="hub-tab" id="boardTab" style="display:none">Leaderboard</a>
+        <a href="owner/" class="hub-tab" id="ownerTab" style="display:none">Agency</a>
+  </nav>
+  <header>
+    <div>
+      <h1 data-brand-name>Underwriting</h1>
+      <div class="sub"></div>
+    </div>
+    <div class="toolbar">
+      <button class="theme-toggle" id="themeBtn" role="switch" aria-checked="false" title="Switch between light and dark mode"><span class="knob"></span></button>
+      <span class="sync-pill" id="syncPill" style="display:none"></span>
+      <div class="acct-box" id="acctBox"><span id="acctEmail"></span><button class="mini" id="logoutBtn">Log out</button></div>
+    </div>
+  </header>
+
+  <div class="card" id="wizCard">
+    <div class="card-head">
+      <h2>Underwriting wizard</h2>
+      <div class="wiz-actions">
+        <button type="button" class="btn" id="wizCopy">Copy for underwriting</button>
+        <button type="button" class="btn secondary" id="wizClear">Clear</button>
+      </div>
+    </div>
+    <p class="wiz-note">Fill in what you know, then copy it to send to underwriting or your upline. Nothing here is saved, so client health details stay off the site.</p>
+    <form id="wizForm" class="wiz-grid" autocomplete="off" onsubmit="return false">
+      <div class="field"><label for="w-age">Age</label><input type="number" id="w-age" min="0" max="120" placeholder="e.g. 67"></div>
+      <div class="field"><label for="w-gender">Gender</label><select id="w-gender"><option value="">—</option><option>Male</option><option>Female</option></select></div>
+      <div class="field"><label for="w-state">State</label><select id="w-state"><option value="">—</option></select></div>
+      <div class="field"><label>Height / Weight</label>
+        <div class="hw">
+          <input type="number" id="w-ft" min="3" max="8" placeholder="ft"><span>ft</span>
+          <input type="number" id="w-in" min="0" max="11" placeholder="in"><span>in</span>
+          <input type="number" id="w-lbs" min="50" max="700" placeholder="lbs"><span>lbs</span>
+        </div>
+        <div class="bmi" id="w-bmi"></div>
+      </div>
+      <div class="field"><label>Smoker?</label><div class="yn" data-yn="w-smoker"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div></div>
+      <div class="field full"><label for="w-med">Medical conditions <span class="muted">(include medication names / date diagnosed — e.g. HBP - 1995 Lisinopril)</span></label>
+        <textarea id="w-med" rows="4" placeholder="HBP - 1995 Lisinopril&#10;Type 2 diabetes - 2018 Metformin"></textarea></div>
+      <div class="field"><label>Hospitalizations?</label><div class="yn" data-yn="w-hosp"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div>
+        <input type="text" id="w-hosp-d" class="yn-detail" placeholder="When / why"></div>
+      <div class="field"><label>Surgeries?</label><div class="yn" data-yn="w-surg"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div>
+        <input type="text" id="w-surg-d" class="yn-detail" placeholder="When / what"></div>
+      <div class="field"><label for="w-crim">Criminal record? <span class="muted">(DUIs etc.)</span></label><input type="text" id="w-crim" placeholder="None / DUI 2019"></div>
+      <div class="field"><label>US citizen?</label><div class="yn" data-yn="w-cit"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div></div>
+      <div class="field full"><label>Your contracted carriers</label>
+        <div class="chips" id="w-carriers"></div></div>
+    </form>
+  </div>
+
+  <div class="card" id="guideCard">
+    <div class="card-head">
+      <h2>Carrier underwriting guides</h2>
+      <input type="text" id="guideFind" class="guide-find" placeholder="Search carriers or products">
+    </div>
+    <p class="wiz-note">Click a carrier, then a product, to see its underwriting summary. Use Edit to fill in or update details from the carrier's guide; your edits are saved to your account.</p>
+    <div id="guideList"></div>
+  </div>
+</div>
+
+<script src="hub-branding.js"></script>
+<script src="comp-guide.js"></script>
+<script src="hub-prefs.js"></script>
+<script src="hub-settings.js"></script>
+<script src="hub-outcomes.js"></script>
+<script src="hub-outcomes-ui.js"></script>
+<script src="hub-contract.js"></script>
+<script src="underwriting-guide.js"></script>
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function pref(k, d) { return window.HubPrefs ? window.HubPrefs.get(k, d) : d; }
+  function setPref(k, v) { if (window.HubPrefs) window.HubPrefs.set(k, v); }
+  var CARRIERS = window.COMP_CARRIERS || {};
+  var GUIDE = window.UW_GUIDE || {};
+  var STATES = [["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["DC","District of Columbia"],["FL","Florida"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"]];
+
+  /* ================= underwriting wizard ================= */
+  // Deliberately never saved: client health details stay in this tab only.
+  STATES.forEach(function (st) { var o = document.createElement("option"); o.value = st[0]; o.textContent = st[1]; $("w-state").appendChild(o); });
+  var yn = {};
+  [].forEach.call(document.querySelectorAll(".yn"), function (g) {
+    g.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button[data-v]");
+      if (!b) return;
+      var k = g.getAttribute("data-yn"), v = b.getAttribute("data-v");
+      yn[k] = yn[k] === v ? "" : v;
+      [].forEach.call(g.querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-v") === yn[k]); });
+      syncDetails();
+    });
+  });
+  function syncDetails() {
+    $("w-hosp-d").style.display = yn["w-hosp"] === "Y" ? "" : "none";
+    $("w-surg-d").style.display = yn["w-surg"] === "Y" ? "" : "none";
+  }
+  function bmi() {
+    var ft = +$("w-ft").value || 0, inch = +$("w-in").value || 0, lbs = +$("w-lbs").value || 0;
+    var h = ft * 12 + inch;
+    return h > 0 && lbs > 0 ? (703 * lbs / (h * h)) : null;
+  }
+  function showBmi() { var b = bmi(); $("w-bmi").textContent = b ? "BMI " + b.toFixed(1) : ""; }
+  ["w-ft", "w-in", "w-lbs"].forEach(function (id) { $(id).addEventListener("input", showBmi); });
+
+  // contracted carriers: remembered per account (not client data)
+  function myCarriers() {
+    var saved = pref("uwMyCarriers", null);
+    return Array.isArray(saved) ? saved : Object.keys(CARRIERS);
+  }
+  function renderChips() {
+    var mine = myCarriers();
+    $("w-carriers").innerHTML = Object.keys(CARRIERS).map(function (c) {
+      var on = mine.indexOf(c) !== -1;
+      return '<button type="button" class="chip' + (on ? " on" : "") + '" data-carrier="' + esc(c) + '">' + esc(c) + "</button>";
+    }).join("");
+  }
+  $("w-carriers").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-carrier]");
+    if (!b) return;
+    var c = b.getAttribute("data-carrier"), mine = myCarriers().slice(), i = mine.indexOf(c);
+    if (i === -1) mine.push(c); else mine.splice(i, 1);
+    setPref("uwMyCarriers", mine);
+    renderChips();
+  });
+
+  function wizText() {
+    var ft = $("w-ft").value, inch = $("w-in").value, lbs = $("w-lbs").value, b = bmi();
+    var hw = (ft || inch ? (ft || 0) + "'" + (inch || 0) + '"' : "") + (lbs ? (ft || inch ? " / " : "") + lbs + " lbs" : "") + (b ? " (BMI " + b.toFixed(1) + ")" : "");
+    var st = $("w-state").value;
+    var stName = st ? (STATES.filter(function (x) { return x[0] === st; })[0] || [st, st])[1] : "";
+    function ynLine(k, detailId) {
+      var v = yn[k] || "";
+      var d = detailId && v === "Y" ? $(detailId).value.trim() : "";
+      return v + (d ? " - " + d : "");
+    }
+    return [
+      "Age: " + $("w-age").value,
+      "Gender: " + $("w-gender").value,
+      "State: " + stName,
+      "Height/Weight: " + hw,
+      "Smoker? " + (yn["w-smoker"] || ""),
+      "Medical Conditions: " + ($("w-med").value.trim() ? "\n" + $("w-med").value.trim() : ""),
+      "Hospitalizations? " + ynLine("w-hosp", "w-hosp-d"),
+      "Surgeries? " + ynLine("w-surg", "w-surg-d"),
+      "Criminal Record? " + $("w-crim").value.trim(),
+      "US Citizen? " + (yn["w-cit"] || ""),
+      "Your contracted carriers? " + myCarriers().join(", ")
+    ].join("\n");
+  }
+  function copyText(text, btn) {
+    var done = function () { var old = btn.textContent; btn.textContent = "Copied!"; setTimeout(function () { btn.textContent = old; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    else fallback();
+    function fallback() {
+      var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); done();
+    }
+  }
+  $("wizCopy").addEventListener("click", function () { copyText(wizText(), this); });
+  $("wizClear").addEventListener("click", function () {
+    $("wizForm").reset(); yn = {};
+    [].forEach.call(document.querySelectorAll(".yn button"), function (x) { x.classList.remove("on"); });
+    syncDetails(); showBmi();
+  });
+  syncDetails();
+
+  /* ================= carrier guides ================= */
+  var FIELDS = [
+    ["ages", "Issue ages"], ["face", "Face amounts"], ["uwType", "Underwriting type"], ["benefit", "Benefit / waiting period"],
+    ["build", "Height & weight"], ["knockouts", "Knockout conditions"], ["rx", "Rx / MIB / phone interview"], ["notes", "Notes"]
+  ];
+  var openCarrier = {}, openProduct = {}, editing = null;
+  function myNotes() { var n = pref("uwNotes", null); return n && typeof n === "object" ? n : {}; }
+  function productInfo(c, p) {
+    var base = (GUIDE[c] && GUIDE[c][p]) || {};
+    var mine = (myNotes()[c] || {})[p] || {};
+    var out = {};
+    FIELDS.forEach(function (f) { out[f[0]] = mine[f[0]] != null && mine[f[0]] !== "" ? mine[f[0]] : (base[f[0]] || ""); });
+    return out;
+  }
+  function filledCount(c, p) { var i = productInfo(c, p); return FIELDS.filter(function (f) { return i[f[0]]; }).length; }
+
+  function renderGuides() {
+    var q = $("guideFind").value.trim().toLowerCase();
+    var html = Object.keys(CARRIERS).map(function (c) {
+      var prods = Object.keys(CARRIERS[c].products || {});
+      if (!prods.length) prods = ["All products"];   // e.g. flat-rate carriers with no product list
+      var cMatch = !q || c.toLowerCase().indexOf(q) !== -1;
+      var shown = prods.filter(function (p) { return cMatch || p.toLowerCase().indexOf(q) !== -1; });
+      if (!shown.length && !cMatch) return "";
+      var isOpen = openCarrier[c] || !!q;
+      var flat = CARRIERS[c].flat != null;
+      return '<details class="g-carrier"' + (isOpen ? " open" : "") + ' data-c="' + esc(c) + '"><summary><b>' + esc(c) + "</b>" +
+        '<span class="muted">' + (flat ? "flat " + CARRIERS[c].flat + "% commission" : prods.length + " product" + (prods.length === 1 ? "" : "s")) + "</span></summary>" +
+        (shown.length ? '<div class="g-prods">' + shown.map(function (p) { return productBlock(c, p); }).join("") + "</div>"
+          : '<div class="g-empty">No products listed in your comp guide for this carrier yet.</div>') +
+        "</details>";
+    }).join("");
+    $("guideList").innerHTML = html || '<div class="g-empty">No carriers or products match that search.</div>';
+  }
+  function productBlock(c, p) {
+    var key = c + "||" + p, isOpen = !!openProduct[key], n = filledCount(c, p), info = productInfo(c, p);
+    var head = '<button type="button" class="g-prod-btn' + (isOpen ? " open" : "") + '" data-prod="' + esc(key) + '"><span class="fold-chev">&#9660;</span>' + esc(p) +
+      '<span class="g-badge' + (n ? "" : " empty") + '">' + (n ? n + "/" + FIELDS.length + " filled" : "Not filled in") + "</span></button>";
+    if (!isOpen) return '<div class="g-prod">' + head + "</div>";
+    var body;
+    if (editing === key) {
+      body = '<form class="g-edit" data-key="' + esc(key) + '">' + FIELDS.map(function (f) {
+        return '<label>' + f[1] + '<textarea name="' + f[0] + '" rows="' + (f[0] === "knockouts" || f[0] === "notes" ? 3 : 1) + '">' + esc(info[f[0]]) + "</textarea></label>";
+      }).join("") + '<div class="g-edit-act"><button type="submit" class="btn small">Save</button><button type="button" class="btn secondary small" data-cancel="1">Cancel</button></div></form>';
+    } else {
+      body = '<dl class="g-sum">' + FIELDS.map(function (f) {
+        return "<dt>" + f[1] + "</dt><dd>" + (info[f[0]] ? esc(info[f[0]]) : '<span class="muted">—</span>') + "</dd>";
+      }).join("") + '</dl><button type="button" class="btn secondary small" data-edit="' + esc(key) + '">Edit</button>';
+    }
+    return '<div class="g-prod open">' + head + '<div class="g-body">' + body + "</div></div>";
+  }
+  $("guideFind").addEventListener("input", renderGuides);
+  $("guideList").addEventListener("toggle", function (ev) {
+    var d = ev.target;
+    if ($("guideFind").value.trim()) return;   // search opens everything; don't remember that
+    if (d.matches && d.matches("details.g-carrier")) openCarrier[d.getAttribute("data-c")] = d.open;
+  }, true);
+  $("guideList").addEventListener("click", function (ev) {
+    var pb = ev.target.closest("[data-prod]");
+    if (pb) { var k = pb.getAttribute("data-prod"); openProduct[k] = !openProduct[k]; if (!openProduct[k] && editing === k) editing = null; renderGuides(); return; }
+    var eb = ev.target.closest("[data-edit]");
+    if (eb) { editing = eb.getAttribute("data-edit"); renderGuides(); var t = document.querySelector(".g-edit textarea"); if (t) t.focus(); return; }
+    if (ev.target.closest("[data-cancel]")) { editing = null; renderGuides(); }
+  });
+  $("guideList").addEventListener("submit", function (ev) {
+    var f = ev.target.closest("form.g-edit");
+    if (!f) return;
+    ev.preventDefault();
+    var parts = f.getAttribute("data-key").split("||"), c = parts[0], p = parts[1];
+    var all = JSON.parse(JSON.stringify(myNotes()));
+    var base = (GUIDE[c] && GUIDE[c][p]) || {};
+    var mine = {};
+    FIELDS.forEach(function (fd) {
+      var v = f.elements[fd[0]].value.trim();
+      if (v !== (base[fd[0]] || "")) mine[fd[0]] = v;   // only keep what differs from the shared guide
+    });
+    all[c] = all[c] || {};
+    if (Object.keys(mine).length) all[c][p] = mine; else delete all[c][p];
+    if (!Object.keys(all[c]).length) delete all[c];
+    setPref("uwNotes", all);
+    editing = null;
+    renderGuides();
+  });
+
+  function renderAll() { renderChips(); renderGuides(); }
+  if (window.HubPrefs && window.HubPrefs.onChange) window.HubPrefs.onChange(function (k) { if (!k || k === "uwNotes" || k === "uwMyCarriers") { if (!editing) renderAll(); } });
+
+  /* ---------- theme ---------- */
+  var THEME_KEY = "agentHub.theme.v1";
+  function effectiveTheme() { return document.documentElement.getAttribute("data-theme") || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
+  function updateThemeBtn() { var d = effectiveTheme() === "dark"; $("themeBtn").classList.toggle("dark", d); $("themeBtn").setAttribute("aria-checked", d ? "true" : "false"); }
+  $("themeBtn").addEventListener("click", function () { var n = effectiveTheme() === "dark" ? "light" : "dark"; document.documentElement.setAttribute("data-theme", n); if (window.HubPrefs) window.HubPrefs.set("theme", n); else try { localStorage.setItem(THEME_KEY, n); } catch (e) {} updateThemeBtn(); });
+  if (window.HubSettings) HubSettings.mount($("themeBtn").parentNode, $("themeBtn"));
+
+  /* ---------- sign-in (notes and carrier picks sync through the account) ---------- */
+  var cloudCfg = window.HUB_CLOUD || {};
+  var cloudOn = !!(cloudCfg.url && cloudCfg.anonKey);
+  var sb = null, cloudUser = null, authMode = "signin";
+  function setAuthMode(mode) {
+    authMode = mode; var signin = mode === "signin";
+    $("authTitle").textContent = signin ? "Log in" : "Create account";
+    $("authSubmit").textContent = signin ? "Log in" : "Create account";
+    $("authPass").setAttribute("autocomplete", signin ? "current-password" : "new-password");
+    $("authErr").textContent = "";
+    $("authSwitch").innerHTML = signin ? 'New here? <a id="authToSignup">Create an account</a>' : 'Already have an account? <a id="authToSignin">Log in</a>';
+    var a = document.getElementById(signin ? "authToSignup" : "authToSignin");
+    if (a) a.onclick = function () { setAuthMode(signin ? "signup" : "signin"); };
+    if (window.HUB_CLOUD && window.HUB_CLOUD.inviteOnly) {
+      document.getElementById("authSwitch").innerHTML = '<span style="color:var(--text-muted)">Accounts are set up by your agency owner.</span>';
+    }
+  }
+  function revealTabs() {
+    if (!sb || !cloudUser) return;
+    sb.from("agency_members").select("agency_id").eq("agent_id", cloudUser.id).limit(1).then(function (res) {
+      if (!res.error && res.data && res.data.length) { var t = document.getElementById("boardTab"); if (t) t.style.display = ""; }
+    }, function () {});
+    sb.from("agencies").select("id").eq("owner_id", cloudUser.id).maybeSingle().then(function (res) {
+      if (!res.error && res.data) {
+        var t = document.getElementById("ownerTab"); if (t) t.style.display = "";
+        var b = document.getElementById("boardTab"); if (b) b.style.display = "";
+      }
+    }, function () {});
+  }
+  function onAuthed(user) {
+    cloudUser = user; $("authGate").classList.remove("show"); $("acctBox").classList.add("show"); $("acctEmail").textContent = user.email || "";
+    revealTabs();
+    if (window.HubPrefs) HubPrefs.attachCloud(sb, user.id).then(function () { if (window.HubSettings) HubSettings.refresh(); renderAll(); });
+    if (window.HubBranding) HubBranding.fetch(sb).then(HubBranding.apply);
+    updateThemeBtn(); renderAll();
+  }
+  function onSignedOut() {
+    if (window.HubBranding) HubBranding.clear();
+    cloudUser = null; $("acctBox").classList.remove("show");
+    $("authGate").classList.add("show"); setAuthMode("signin");
+  }
+  function initCloud() {
+    setAuthMode("signin");
+    $("authForm").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var email = $("authEmail").value.trim(), pass = $("authPass").value;
+      $("authErr").textContent = ""; $("authSubmit").disabled = true;
+      var op = authMode === "signin" ? sb.auth.signInWithPassword({ email: email, password: pass }) : sb.auth.signUp({ email: email, password: pass });
+      op.then(function (res) {
+        $("authSubmit").disabled = false;
+        if (res.error) { $("authErr").textContent = res.error.message; return; }
+        if (authMode === "signup" && res.data && !res.data.session) { $("authErr").textContent = "Account created — check your email to confirm, then log in."; setAuthMode("signin"); }
+      });
+    });
+    $("logoutBtn").addEventListener("click", function () { sb.auth.signOut(); });
+    sb.auth.onAuthStateChange(function (_e, session) { if (session && session.user) { if (!cloudUser) onAuthed(session.user); } else if (cloudUser !== null) onSignedOut(); });
+    sb.auth.getSession().then(function (res) { var s = res.data && res.data.session; if (s && s.user) onAuthed(s.user); else $("authGate").classList.add("show"); });
+  }
+  function loadSupabaseSdk(cb) { var s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"; s.onload = cb; s.onerror = function () { cloudOn = false; updateThemeBtn(); renderAll(); }; document.head.appendChild(s); }
+
+  updateThemeBtn(); renderAll();
+  if (cloudOn) loadSupabaseSdk(function () { sb = window.supabase.createClient(cloudCfg.url, cloudCfg.anonKey); initCloud(); });
+})();
+
+</script>
+<script src="tabs-customize.js"></script>
+<script src="hub-shell.js"></script>
+</body>
+</html>
