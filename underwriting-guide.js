@@ -9,7 +9,10 @@
    American Amicable Products at a Glance + Agent Manual, AHL Patriot disease
    guide / drug list / state availability, CICA Agent Guide, Foresters UW guide
    + non-med diabetes ratings, Mutual of Omaha SI UW guide + product portfolio,
-   Transamerica Underwriting Primer, Liberty Bankers agent guide.
+   Transamerica Underwriting Primer, Liberty Bankers agent guide, and
+   (Oct 13 2026) SBLI OmniTrak/Flex WL field UW guide, UHL product portfolio
+   (3/26), agent guide (8/24), SI underwriting guide and Protector AD guide,
+   F&G Pathsetter brochure.
    Only facts stated in those sources are filled in; everything else is left
    blank. Each agent can add their own notes on top in the Underwriting tab
    (saved to their account).
@@ -31,7 +34,7 @@ window.UW_CARRIERS = [
   { name: "Kansas City Life", comp: "Kansas City Life", excludes: "", bestFor: "Term (mortgage protection)" },
   { name: "Occidental Life (North Carolina)", comp: "", excludes: "", bestFor: "" },
   { name: "Fidelity & Guaranty (F&G)", comp: "F&G", excludes: "", bestFor: "Term (mortgage protection)" },
-  { name: "SBLI", comp: "", excludes: "", bestFor: "" },
+  { name: "SBLI", comp: "", excludes: "NY", bestFor: "Term · accelerated UW up to $2M, no exam" },
   { name: "United Home Life", comp: "United Home Life", excludes: "", bestFor: "Term · final expense · insulin / prior declines" },
   { name: "Royal Neighbors", comp: "", excludes: "", bestFor: "COPD and neuropathy cases" }
 ];
@@ -354,10 +357,11 @@ window.UW_GUIDE = {
       ages: "0–80",
       face: "Min face $50,000",
       uwType: "Indexed universal life — fully underwritten; exam-free ages 0–60 up to $5M; substandard available",
+      benefit: "15-year no-lapse guarantee if the minimum no-lapse premium is paid. Surrender charges decline to zero over 15 years; up to 20% of surrender value can be withdrawn yearly without a charge after year 1. Index floor 0.25%. Riders: terminal illness (24-month life expectancy, up to $1M), critical illness (up to $1M), chronic illness (25%/yr, 2 of 6 ADLs), waiver of monthly deductions, ADB to age 70, overloan protection, term, spouse term and children's term to 25.",
       knockouts: "Everlast & Pathsetter share one brokerage UW guide: Preferred through Table 8 (Table H / 300%); most impairments are table-rated rather than declined.\nCommon declines: recurrent or Stage IV cancer; uncontrolled diabetes or diabetes with complications; heart disease with diabetes or stroke; awaiting/received heart, lung or liver transplant; dialysis; oxygen; living in a care facility; dementia/Alzheimer's; ALS; Huntington's; cirrhosis or hepatitis D; AIDS; pulmonary fibrosis with oxygen.\nAccepted (rated): AFib, bipolar, CHF and CAD (without diabetes/stroke), COPD without oxygen, Crohn's, MS, PVD, lupus, valve repair/replacement, kidney disease (not dialysis), aneurysm, mild stroke, TIA.\nAlcohol or drug treatment within 2 years = decline. Anxiety/depression/hypertension/cholesterol: Preferred–Table 8. Marijuana: non-tobacco possible.",
       rx: "Non-medical: up to 2 violations in 3 years; DUI (1 or 2+) OK if more than 5 years. F&G usually orders records (APS) for undisclosed history, stroke, heart disease, substance abuse, insulin diabetes, cancer, liver/pancreas, paralysis, seizures, psych disorders beyond mild anxiety/depression, and respiratory beyond mild asthma.",
-      notes: "Classes: Preferred NT, NT, Preferred Tobacco, Tobacco, Standard.",
-      src: "TERM UW Cheat Sheet (Founders Financial Group)"
+      notes: "Classes: Preferred NT, NT, Preferred Tobacco, Tobacco, Standard.\nBuilt for cash accumulation. Expense charge 9% years 1–10, 5% after; $9/month fee. Loans: fixed (net 0% from year 11) or variable (capped at 5%). The brochure has no underwriting rules — use the shared Everlast & Pathsetter guide above.",
+      src: "TERM UW Cheat Sheet (Founders Financial Group); F&G Pathsetter brochure (ADV2261 rev 12/2025)"
     },
     "Quantum": {
       ages: "0–60",
@@ -369,61 +373,98 @@ window.UW_GUIDE = {
     }
   },
   "SBLI": {
-    "Term": {
-      uwType: "Term — accelerated underwriting; labs/vitals or APS for cause. Classes: Preferred Plus, Preferred, Select, Standard (non-nicotine & nicotine). Substandard build to about Table 8.",
-      knockouts: "Decline: any cancer within 2 years; CHF; HIV; cirrhosis; renal failure; pulmonary hypertension; ALS; drug abuse within 5 years; stroke within 1 year; heart valve surgery within 6 months; aneurysm surgery within 6 months; most transplants; severe chronic pain/disability; probation/parole.\nAccept: controlled anxiety or depression on 1 med (depression 1+ year); mild asthma; basal/squamous skin cancer (under 3 lesions); controlled HBP; cholesterol up to 300; gastric bypass 5+ years; treated mild sleep apnea with CPAP.\nRefer (labs/APS): alcohol history, AFib, bipolar, CAD, COPD (severe = decline), Crohn's, diabetes (Type 1 or 2), seizures, hepatitis B/C, melanoma, MS, PVD, TIA, ulcerative colitis, lupus.",
-      rx: "Marijuana under 11 times a month OK.",
-      src: "TERM UW Cheat Sheet (Founders Financial Group)"
+    "OmniTrak Term": {
+      ages: "Age/amount chart covers 0–80; accelerated UW 18–60 (juveniles and 61+ are traditionally underwritten)",
+      face: "Accelerated: $100,000–$2,000,000 (18–50), $100,000–$1,000,000 (51–60). Fully underwritten above that.",
+      uwType: "Term — accelerated underwriting with traditional underwriting for larger amounts or older ages. Classes: Preferred Plus, Preferred, Select, Standard (non-nicotine); Preferred and Standard nicotine.",
+      benefit: "Accelerated underwriting (no labs/exam): ages 18–50 for $100,000–$2,000,000; ages 51–60 for $100,000–$1,000,000. Must be submitted digitally (iPipeline, Applicint, IXN app or Techficient). Real-time decision: approve, refer, or labs/vitals.\nAU checks: MIB, MVR, Rx and medical-claims data, LabPiQture, FCRA public-data score, tele-interview or online Part 2.\nTraditional (paramed + blood/urine + MVR + Rx): ages 61–69 any amount, plus EKG at 70–80; over $1M at 51+; any amount over $2M; juveniles. No medical records are ordered on approved AU cases ages 0–50.",
+      build: "Max weight Preferred Plus / Preferred / Select / Standard (non-nicotine) — 5'0\": 155/165/178/198 · 5'4\": 174/186/200/223 · 5'8\": 195/208/224/251 · 6'0\": 217/231/250/281 · 6'4\": 240/256/277/312. Substandard build goes to 200 debits (e.g. 5'8\" up to 320, 6'0\" up to 358).",
+      knockouts: "Likely declines: AIDS/HIV; alcohol abuse with current use; ALS; Alzheimer's/dementia; any cancer within 2 years (except basal/squamous skin); severe chronic pain, on disability or narcotics; cirrhosis; CHF; COPD/emphysema/chronic bronchitis that is severe or with current nicotine use; cystic fibrosis; defibrillator; stroke within the last year; suicide attempt within 5 years; severe/recurrent depression or multiple inpatient stays; diabetes with significant heart, kidney or mobility problems; multi-vessel heart disease within 2 years or any heart history with current nicotine; Huntington's; muscular dystrophy; progressing MS; most recent organ transplants; quadriplegia; pulmonary hypertension; severe renal failure/insufficiency; substance abuse within 5 years; heart valve, aneurysm, brain tumor or major organ surgery within 6 months.\nNon-medical declines: any felony in 10 years, fraud, drug dealing or sex crimes; more than 2 DUIs, or a DUI under age 25 within the last year; unemployed (not homemaker/retired) on minimal income or SSI/disability; bankruptcy within 2 years or multiple filings; liens/judgments over $50,000; heavy collections/repossessions.\nGood accelerated-UW candidates (likely instant approval): ADHD on 1 med; basal/squamous cell (under 3 lesions, last 6+ months ago); benign heart murmur; depression 1+ year on no more than 1 med; gastric bypass/sleeve 5+ years; treated cholesterol up to 300; thyroid; controlled HBP; iron-deficiency anemia; marijuana under 11 times a month; mild or exercise-induced asthma without steroids; PCOS; mild CPAP-compliant sleep apnea 1+ year; anxiety 1+ year on 1 med.\nMedical records always ordered for: alcohol/drug history, aneurysm, arrhythmia, Barrett's, blood disorders, cancer/tumors/biopsies, stroke, COPD, CAD/angina, Crohn's/UC, diabetes, eating disorders, embolism, seizure/TIA, heart, hepatitis B/C, kidney, liver, psychiatric, MS, pancreatic (except acute pancreatitis), paraplegia, Parkinson's, PSA abnormalities, syncope, vascular disease.",
+      rx: "Preferred Plus NT: no nicotine 3 yrs; no personal heart disease, diabetes or cancer (minor skin cancer OK); no drug/alcohol history ever; no parent or sibling death before 60 from heart disease or familial cancer (waived 65+, ignored 70+); max 1 DUI, none (or reckless) in 5 yrs, max 2 moving violations in 3 yrs; cholesterol 120–300, ratio 5.0 men / 4.5 women; BP 135/85 (to 60) or 140/85 (61+); no private aviation; scuba under 100 ft; US resident 2+ years.\nPreferred NT: no nicotine 2 yrs; no drug/alcohol 10 yrs; ratio 5.5 / 5.0; BP 135/85 or 140/90. Also allows anxiety on 1 med, CPAP sleep apnea, mild RA on NSAIDs.\nSelect NT: no nicotine 12 months; no DUI in 3 yrs; max 3 moving violations; ratio 6.5 / 6.0; BP 140/90 or 145/90. Allows depression on 1 med, gastric surgery 5+ yrs, PCOS.\nStandard NT: no nicotine 12 months; no drug/alcohol 7 yrs; no DUI in 2 yrs; ratio up to 7.0; BP rated on actual readings; scuba under 130 ft.\nOccasional cigars (24 or fewer a year), fully disclosed with a negative nicotine test, can still get non-nicotine rates.",
+      notes: "Healthy Credits Program: up to 2 tables better (up to Select) for ages 18–70, through Table 5, if 3 of 4 (build, BP, cholesterol, family history) meet Preferred criteria plus a favorable wellness exam and age screenings in the last 24 months. Not for heart history, diabetes with complications, substance abuse, cancer, cognitive issues or flat extras.\nCoverage optimization: approved cases may be offered more coverage at issue with no extra underwriting (AU up to $1M more in $100K steps).\nForeign nationals: 2+ years permanent US residency, US visa (not student/visitor), SSN, US assets and healthcare. Military special forces (Rangers, Delta, Green Berets, SEALs, AF special forces) declined.\nNot sold in NY. Agent portal: sbliagent.com · customerservice@sbli.com · fax 781-994-4240.",
+      src: "SBLI OmniTrak & Flex Whole Life Field UW Guide (26-4313, 5/2026); TERM UW Cheat Sheet (Founders Financial Group)"
+    },
+    "Flex Whole Life": {
+      uwType: "Whole life — same field underwriting guide, classes and build chart as OmniTrak Term. Apply by drop e-ticket/tele-interview through Applicint.",
+      benefit: "Accelerated underwriting (no labs/exam): ages 18–50 for $100,000–$2,000,000; ages 51–60 for $100,000–$1,000,000. Must be submitted digitally (iPipeline, Applicint, IXN app or Techficient). Real-time decision: approve, refer, or labs/vitals.\nAU checks: MIB, MVR, Rx and medical-claims data, LabPiQture, FCRA public-data score, tele-interview or online Part 2.\nTraditional (paramed + blood/urine + MVR + Rx): ages 61–69 any amount, plus EKG at 70–80; over $1M at 51+; any amount over $2M; juveniles. No medical records are ordered on approved AU cases ages 0–50.",
+      build: "Max weight Preferred Plus / Preferred / Select / Standard (non-nicotine) — 5'0\": 155/165/178/198 · 5'4\": 174/186/200/223 · 5'8\": 195/208/224/251 · 6'0\": 217/231/250/281 · 6'4\": 240/256/277/312. Substandard build goes to 200 debits (e.g. 5'8\" up to 320, 6'0\" up to 358).",
+      knockouts: "Same declines and accelerated-UW candidates as OmniTrak Term (see that entry).",
+      rx: "Preferred Plus NT: no nicotine 3 yrs; no personal heart disease, diabetes or cancer (minor skin cancer OK); no drug/alcohol history ever; no parent or sibling death before 60 from heart disease or familial cancer (waived 65+, ignored 70+); max 1 DUI, none (or reckless) in 5 yrs, max 2 moving violations in 3 yrs; cholesterol 120–300, ratio 5.0 men / 4.5 women; BP 135/85 (to 60) or 140/85 (61+); no private aviation; scuba under 100 ft; US resident 2+ years.\nPreferred NT: no nicotine 2 yrs; no drug/alcohol 10 yrs; ratio 5.5 / 5.0; BP 135/85 or 140/90. Also allows anxiety on 1 med, CPAP sleep apnea, mild RA on NSAIDs.\nSelect NT: no nicotine 12 months; no DUI in 3 yrs; max 3 moving violations; ratio 6.5 / 6.0; BP 140/90 or 145/90. Allows depression on 1 med, gastric surgery 5+ yrs, PCOS.\nStandard NT: no nicotine 12 months; no drug/alcohol 7 yrs; no DUI in 2 yrs; ratio up to 7.0; BP rated on actual readings; scuba under 130 ft.\nOccasional cigars (24 or fewer a year), fully disclosed with a negative nicotine test, can still get non-nicotine rates.",
+      notes: "Juveniles (0–17) are traditionally underwritten; amount is limited to 50% of the primary earner's coverage and siblings should have similar amounts.",
+      src: "SBLI OmniTrak & Flex Whole Life Field UW Guide (26-4313, 5/2026)"
     }
   },
   "United Home Life": {
     "Term": {
-      face: "Simple Term 20 DLX: $25,000 – $50,000",
+      ages: "Simple Term 20: 20–60 · Simple Term 30: 20–55 NT / 20–50 T · 20 ROP: 25–60 NT / 25–45 T · 20 DLX: 20–60 (age last birthday; state variations)",
+      face: "Simple Term 20 & 20 ROP Band 2: $25,000/$100,000 min; max $500,000 (to 45), $375,000 (46–55), $250,000 (56–60). Simple Term 30: max $500,000 (to 45), $375,000 (46–55). 20 ROP Band 1: $25,000–$99,999. 20 DLX: $25,000–$50,000.",
       uwType: "Simple Term 20 / 30 / 20 ROP (built-in Table 4) and Simple Term 20 DLX (built-in Table 8)",
-      benefit: "DLX advertises day-one coverage up to $50,000 for qualifying applicants.",
-      build: "Must be inside the build chart for the plan; outside the DLX chart, UHL points to graded-benefit products.",
+      benefit: "ROP pays back 80% of 20 annual premiums (100% for Band 2 ages 25–50 non-tobacco). $100 policy fee. Riders: waiver of premium, child rider (first $5,000 free on $100,000+), ADB ($25,000 min), terminal illness.",
+      build: "Max weight Provider / all other plans / EI Deluxe & Simple Term 20 DLX — 5'0\": 190/210/240 · 5'2\": 200/225/255 · 5'4\": 215/240/270 · 5'6\": 230/255/290 · 5'8\": 245/270/305 · 5'10\": 260/285/325 · 6'0\": 275/305/340 · 6'4\": 305/340/385. Heavier = Express Issue Whole Life (graded).",
       knockouts: "Simple Term (Table 4) fits minor conditions: controlled Type 2 diabetes, controlled blood pressure/cholesterol, depression, anxiety.\nSimple Term 20 DLX fits moderate conditions: Type 1/insulin diabetes, schizophrenia, bipolar, major depression, disability, previous declines.\nBasic eligibility fails: can't understand/sign; no doctor or not seen in 3 years; outside build chart; foreign national not legally/permanently in U.S. 2+ years; called to combat duty.\nPre-screen with UHL: active cancer, dialysis, oxygen, advanced CHF, recent heart/stroke event, active substance abuse, progressive neurologic disease.",
-      rx: "Non-tobacco: no nicotine, substitute or vaping in 12 months. Rx search may trigger questions, APS, exam or labs. No published DUI/felony timelines — check the application.",
-      src: "Forged Term Underwriting Knockout Guide (Jul 2026)"
+      rx: "Non-tobacco: no nicotine, substitute or vaping in 12 months. Rx search may trigger questions, APS, exam or labs. No published DUI/felony timelines — check the application.\nPhone interview (PHI) required on term over $100,000 and random below; always if you didn't meet the client in person. Start a point-of-sale PHI from the client's home: 866-333-6557.",
+      notes: "Basic eligibility (all products): able to understand and sign the app; has an attending physician and routine care, seen within the past 3 years. No substandard ratings — the client qualifies for the plan or doesn't. No routine exams or labs (ND and WI require an oral fluid/HIV test). Non-tobacco = no nicotine or vaping of any kind in 12 months. Foreign nationals: legal, permanent, SSN + visa/green card, in the US 2+ years. Military: non-combat units only.",
+      src: "Forged Term Underwriting Knockout Guide (Jul 2026); UHL Product Portfolio (200-691 3/26); UHL SI Agent's Underwriting Guidelines (200-493)"
     },
     "Express Issue Premier WL": {
       ages: "20–80",
-      face: "$5,000–$100,000",
-      uwType: "Whole life — final expense (Express Issue)",
-      benefit: "Immediate",
-      knockouts: "Graded/GI routing: heart attack, bypass/heart surgery, CAD, CHF, cardiomyopathy or stroke within 1 year = GI only, otherwise Graded; stent, angina, pacemaker, defibrillator, cancer history, kidney/liver disease = Graded or GI; AIDS/HIV, terminal illness or confined to hospital/hospice/nursing home = GI knockout (decline); ALS, dementia, mental incapacity, oxygen, cystic fibrosis, pulmonary fibrosis = GI only.\nPremier look-back 2 years: bipolar, schizophrenia, lupus.\nDeluxe/Premier: insulin diabetes. Deluxe: DUI/reckless driving/suspended license within 2 years.\nExpress/Provider (no hit): AFib, arthritis, basal cell, controlled depression/PTSD without hospitalization, sleep apnea, ulcerative colitis, seizures, Crohn's.",
-      src: "Final Expense Underwriting Knockout Cheat Sheet (Jul 2026); FE & WL UW Cheat Sheet (Founders Financial Group)"
+      face: "$5,000–$100,000 through age 60; $5,000–$50,000 ages 61–80",
+      uwType: "Simplified issue whole life — built-in Table 4; immediate death benefit",
+      benefit: "Immediate full benefit. Riders: child rider, ADB ($10,000 min, ages 20–60), terminal illness.",
+      build: "Max weight Provider / all other plans / EI Deluxe & Simple Term 20 DLX — 5'0\": 190/210/240 · 5'2\": 200/225/255 · 5'4\": 215/240/270 · 5'6\": 230/255/290 · 5'8\": 245/270/305 · 5'10\": 260/285/325 · 6'0\": 275/305/340 · 6'4\": 305/340/385. Heavier = Express Issue Whole Life (graded).",
+      knockouts: "Ideal for controlled HBP/cholesterol and Type 2 (non-insulin) diabetes.\n2-year look-back: schizophrenia or bipolar, suicide attempt, major depression, insulin-treated diabetes, systemic lupus.\nGraded/GI routing: heart attack, bypass/heart surgery, CAD, CHF, cardiomyopathy or stroke within 1 year = GI only, otherwise Graded; stent, angina, pacemaker, defibrillator, cancer history, kidney/liver disease = Graded or GI; AIDS/HIV, terminal illness or confined to hospital/hospice/nursing home = GI knockout (decline); ALS, dementia, mental incapacity, oxygen, cystic fibrosis, pulmonary fibrosis = GI only.\nPremier look-back 2 years: bipolar, schizophrenia, lupus.\nDeluxe/Premier: insulin diabetes. Deluxe: DUI/reckless driving/suspended license within 2 years.\nExpress/Provider (no hit): AFib, arthritis, basal cell, controlled depression/PTSD without hospitalization, sleep apnea, ulcerative colitis, seizures, Crohn's.",
+      rx: "PHI required on every app — run it at point of sale (866-333-6557); the interviewer checks MIB and Rx and tells you whether to send the app.",
+      notes: "Basic eligibility (all products): able to understand and sign the app; has an attending physician and routine care, seen within the past 3 years. No substandard ratings — the client qualifies for the plan or doesn't. No routine exams or labs (ND and WI require an oral fluid/HIV test). Non-tobacco = no nicotine or vaping of any kind in 12 months. Foreign nationals: legal, permanent, SSN + visa/green card, in the US 2+ years. Military: non-combat units only.",
+      src: "UHL Product Portfolio (200-691 3/26); UHL Whole Life Agent Guide (200-605 8/24); FE & WL UW Cheat Sheet (Founders Financial Group)"
     },
     "Express Issue Deluxe WL": {
       ages: "20–80",
       face: "$5,000–$50,000",
-      uwType: "Whole life — final expense (Express Issue)",
-      benefit: "Immediate. 2-year lookback for moderate conditions.",
-      knockouts: "Graded/GI routing: heart attack, bypass/heart surgery, CAD, CHF, cardiomyopathy or stroke within 1 year = GI only, otherwise Graded; stent, angina, pacemaker, defibrillator, cancer history, kidney/liver disease = Graded or GI; AIDS/HIV, terminal illness or confined to hospital/hospice/nursing home = GI knockout (decline); ALS, dementia, mental incapacity, oxygen, cystic fibrosis, pulmonary fibrosis = GI only.\nPremier look-back 2 years: bipolar, schizophrenia, lupus.\nDeluxe/Premier: insulin diabetes. Deluxe: DUI/reckless driving/suspended license within 2 years.\nExpress/Provider (no hit): AFib, arthritis, basal cell, controlled depression/PTSD without hospitalization, sleep apnea, ulcerative colitis, seizures, Crohn's.",
-      notes: "Best starting point for Type 1 diabetes / insulin (complications still matter), previous declines and high build.",
-      src: "Final Expense Underwriting Knockout Cheat Sheet (Jul 2026); FE & WL UW Cheat Sheet (Founders Financial Group)"
+      uwType: "Simplified issue whole life — built-in Table 8; immediate death benefit",
+      benefit: "Immediate full benefit. Riders: child rider, ADB ($10,000 min, ages 20–60), terminal illness.",
+      build: "Max weight Provider / all other plans / EI Deluxe & Simple Term 20 DLX — 5'0\": 190/210/240 · 5'2\": 200/225/255 · 5'4\": 215/240/270 · 5'6\": 230/255/290 · 5'8\": 245/270/305 · 5'10\": 260/285/325 · 6'0\": 275/305/340 · 6'4\": 305/340/385. Heavier = Express Issue Whole Life (graded).",
+      knockouts: "Ideal for Type 1/insulin diabetes, people on disability, and prior declines.\n2-year look-back: cancer, heart/circulatory disorders, stroke, sickle cell, brain tumor, kidney, liver, lung/respiratory disease, ALS, neurological disorders, diabetic eye/kidney/nerve complications, alcohol or drug abuse.\nGraded/GI routing: heart attack, bypass/heart surgery, CAD, CHF, cardiomyopathy or stroke within 1 year = GI only, otherwise Graded; stent, angina, pacemaker, defibrillator, cancer history, kidney/liver disease = Graded or GI; AIDS/HIV, terminal illness or confined to hospital/hospice/nursing home = GI knockout (decline); ALS, dementia, mental incapacity, oxygen, cystic fibrosis, pulmonary fibrosis = GI only.\nPremier look-back 2 years: bipolar, schizophrenia, lupus.\nDeluxe/Premier: insulin diabetes. Deluxe: DUI/reckless driving/suspended license within 2 years.\nExpress/Provider (no hit): AFib, arthritis, basal cell, controlled depression/PTSD without hospitalization, sleep apnea, ulcerative colitis, seizures, Crohn's.",
+      rx: "PHI required on every app — run it at point of sale (866-333-6557).",
+      notes: "Best starting point for Type 1 diabetes / insulin (complications still matter), previous declines and high build.\nBasic eligibility (all products): able to understand and sign the app; has an attending physician and routine care, seen within the past 3 years. No substandard ratings — the client qualifies for the plan or doesn't. No routine exams or labs (ND and WI require an oral fluid/HIV test). Non-tobacco = no nicotine or vaping of any kind in 12 months. Foreign nationals: legal, permanent, SSN + visa/green card, in the US 2+ years. Military: non-combat units only.",
+      src: "UHL Product Portfolio (200-691 3/26); UHL Whole Life Agent Guide (200-605 8/24); Final Expense Underwriting Knockout Cheat Sheet (Jul 2026)"
     },
     "Express Issue Graded WL": {
-      uwType: "Whole life — final expense (Express Issue)",
-      benefit: "May use a graded death benefit. 1-year lookback for major conditions.",
-      knockouts: "Graded/GI routing: heart attack, bypass/heart surgery, CAD, CHF, cardiomyopathy or stroke within 1 year = GI only, otherwise Graded; stent, angina, pacemaker, defibrillator, cancer history, kidney/liver disease = Graded or GI; AIDS/HIV, terminal illness or confined to hospital/hospice/nursing home = GI knockout (decline); ALS, dementia, mental incapacity, oxygen, cystic fibrosis, pulmonary fibrosis = GI only.\nPremier look-back 2 years: bipolar, schizophrenia, lupus.\nDeluxe/Premier: insulin diabetes. Deluxe: DUI/reckless driving/suspended license within 2 years.\nExpress/Provider (no hit): AFib, arthritis, basal cell, controlled depression/PTSD without hospitalization, sleep apnea, ulcerative colitis, seizures, Crohn's.",
-      notes: "Good for previous declines and certain build challenges.",
-      src: "Final Expense Underwriting Knockout Cheat Sheet (Jul 2026); FE & WL UW Cheat Sheet (Founders Financial Group)"
+      ages: "25–80",
+      face: "$2,000–$25,000 (min $5,000 PA, $7,000 WA)",
+      uwType: "Express Issue Whole Life — simplified issue graded benefit; built-in Table 16",
+      benefit: "Graded 2 years: year 1 pays premiums back + 12%, year 2 premiums + 24% (PA: 30% / 60% of face). Accidental death pays full from day one. Full benefit from year 3. Free riders at $10,000+: identity theft waiver, hospital stay waiver, common carrier ADB.",
+      build: "No build limit given — this is where clients over the other build charts go.",
+      knockouts: "Ideal for prior declines and overweight clients.\n1-year look-back: cancer, CHF, cardiomyopathy, heart attack/surgery, stroke, drug abuse.\nGraded/GI routing: heart attack, bypass/heart surgery, CAD, CHF, cardiomyopathy or stroke within 1 year = GI only, otherwise Graded; stent, angina, pacemaker, defibrillator, cancer history, kidney/liver disease = Graded or GI; AIDS/HIV, terminal illness or confined to hospital/hospice/nursing home = GI knockout (decline); ALS, dementia, mental incapacity, oxygen, cystic fibrosis, pulmonary fibrosis = GI only.\nPremier look-back 2 years: bipolar, schizophrenia, lupus.\nDeluxe/Premier: insulin diabetes. Deluxe: DUI/reckless driving/suspended license within 2 years.\nExpress/Provider (no hit): AFib, arthritis, basal cell, controlled depression/PTSD without hospitalization, sleep apnea, ulcerative colitis, seizures, Crohn's.",
+      rx: "PHI required on every app — run it at point of sale (866-333-6557).",
+      notes: "Good for previous declines and certain build challenges.\nCommission chargeback: 100% if the insured dies in year 1.",
+      src: "UHL Product Portfolio (200-691 3/26); UHL Whole Life Agent Guide (200-605 8/24); Final Expense Underwriting Knockout Cheat Sheet (Jul 2026)"
     },
     "Guaranteed Issue Whole Life": {
-      ages: "45–75",
-      face: "$5,000–$25,000",
-      uwType: "Guaranteed issue whole life — no health questions",
-      knockouts: "GI knockouts: AIDS/HIV, terminal illness, currently confined to a hospital, hospice or nursing home.",
-      notes: "Floor for ALS, dementia, mental incapacity, oxygen, cystic fibrosis/pulmonary fibrosis and very recent heart/stroke events.",
-      src: "FE & WL UW Cheat Sheet (Founders Financial Group)"
+      ages: "40–75 per the 3/26 portfolio (the 8/24 agent guide says 45–75)",
+      face: "$5,000–$25,000 ($7,000 min in WA)",
+      uwType: "Conditionally guaranteed whole life — no health questions, no exam, no PHI",
+      benefit: "Graded 2 years: premiums back + 8% interest; accidental death pays full. Full benefit from year 3.",
+      knockouts: "Agent must confirm the client is NOT: confined to a hospital, hospice, nursing or convalescent home; receiving home health or nursing care; HIV+/AIDS; diagnosed with an illness expected to cause death within 24 months; using IV drugs. No POA applications.",
+      notes: "Floor for ALS, dementia, mental incapacity, oxygen, cystic fibrosis/pulmonary fibrosis and very recent heart/stroke events.\nGI can't be more than 25% of your production — place 3 non-GI policies (Protector AD doesn't count) for every GI. Chargeback: 100% if death in year 1, 50% in year 2 (none if accidental). In-person or video call only.",
+      src: "UHL Product Portfolio (200-691 3/26); UHL Whole Life Agent Guide (200-605 8/24); FE & WL UW Cheat Sheet (Founders Financial Group)"
     },
     "Provider Whole Life": {
-      ages: "0–80",
-      face: "$10,000–$150,000 (age-banded)",
-      uwType: "Fully underwritten whole life — Standard / Preferred; level benefit",
-      build: "Preferred max weight — 5'0\": 161 · 5'4\": 181 · 5'8\": 203 · 6'0\": 226 · 6'4\": 252.",
-      src: "FE & WL UW Cheat Sheet (Founders Financial Group)"
+      ages: "0–80 (juvenile 0–17)",
+      face: "$10,000 min; max $150,000 (0–50), $100,000 (51–60), $50,000 (61–80)",
+      uwType: "Simplified issue whole life — Preferred NT / Standard NT / Tobacco; no ratable conditions; PHI required (ordered by home office)",
+      benefit: "Level. Riders: waiver of premium, child rider, terminal illness. Free at $25,000+: common carrier ADB, life-threatening cancer benefit (10% advance), 1% charitable gift. Ages 0–17 include guaranteed insurability.",
+      build: "Standard max: 5'0\" 190 · 5'4\" 215 · 5'8\" 245 · 6'0\" 275 · 6'4\" 305. Preferred max: 5'0\" 161 · 5'4\" 181 · 5'8\" 203 · 6'0\" 226 · 6'4\" 252.",
+      knockouts: "Preferred requires: no treatment ever for cholesterol or HBP; no mental illness/depression in 10 yrs; no bankruptcy, felony or misdemeanor in 10 yrs; no parent/sibling death from heart disease or cancer before 60; valid license, max 2 violations in 3 yrs, no DUI in 5; no alcohol abuse; not active military; US resident 3+ yrs; employable full-time, not on disability; no pilot/crew in 2 yrs; no ratable hobbies.\nPreferred ages 66–80 also: no falls or fractures in 10 yrs, full ADLs, and 5 points on the PHI lifestyle questions (exercise, drives, works, volunteers, lives with someone/pet, hobbies/travel, handles own finances).",
+      notes: "Basic eligibility (all products): able to understand and sign the app; has an attending physician and routine care, seen within the past 3 years. No substandard ratings — the client qualifies for the plan or doesn't. No routine exams or labs (ND and WI require an oral fluid/HIV test). Non-tobacco = no nicotine or vaping of any kind in 12 months. Foreign nationals: legal, permanent, SSN + visa/green card, in the US 2+ years. Military: non-combat units only.",
+      src: "UHL Product Portfolio (200-691 3/26); UHL Whole Life Agent Guide (200-605 8/24)"
+    },
+    "Accidental": {
+      ages: "18–60 (gender and tobacco neutral)",
+      face: "Accidental death benefit $50,000 / $75,000 / $100,000 — doubles to $100,000 / $150,000 / $200,000 by end of year 20",
+      uwType: "Protector AD — small whole life base plus a larger accidental death rider; one non-health question; no PHI",
+      benefit: "Monthly EFT $17.40 / $21.75 / $26.10. Return of premium option at year 20 (20 × annual premium = $4,000 / $5,000 / $6,000).",
+      knockouts: "The one question: in the past 3 years (or planned in the next 2) aviation, parachuting, hang gliding, mountain climbing, rodeo, skydiving, scuba, base jumping, racing, or a suspended/revoked license; or a DWI/DUI conviction in the past 5 years.\nDeclined occupations: pilots/crew, FBI/CIA/SWAT/bomb squad, active military, explosives, chem/bio weapons, oil & gas firefighters/offshore, overseas security, pro athletes, racing.\nAccepted: municipal police/guards/corrections, firefighters, truckers, surface coal miners, construction (no blasting), logging, postal.",
+      src: "UHL Protector AD Agent Brochure (200-506 7/24); UHL Product Portfolio (200-691 3/26)"
     }
   },
   "Royal Neighbors": {
