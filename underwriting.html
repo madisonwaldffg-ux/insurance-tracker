@@ -194,6 +194,7 @@
   .g-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
   .g-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
   .g-edit-act { grid-column: 1 / -1; display: flex; gap: 8px; }
+  .g-src { font-size: 12px; color: var(--text-muted); margin: -2px 0 10px; }
   .g-empty { font-size: 13px; color: var(--text-muted); padding: 4px 14px 12px; }
   @media (max-width: 640px) { .g-sum { grid-template-columns: 1fr; gap: 2px; } .g-sum dd { margin-bottom: 6px; } .g-edit { grid-template-columns: 1fr; } .guide-find { width: 100%; } }
 </style>
@@ -445,7 +446,9 @@
     } else {
       body = '<dl class="g-sum">' + FIELDS.map(function (f) {
         return "<dt>" + f[1] + "</dt><dd>" + (info[f[0]] ? esc(info[f[0]]) : '<span class="muted">—</span>') + "</dd>";
-      }).join("") + '</dl><button type="button" class="btn secondary small" data-edit="' + esc(key) + '">Edit</button>';
+      }).join("") + "</dl>" +
+        (((GUIDE[c] || {})[p] || {}).src ? '<div class="g-src">Source: ' + esc(GUIDE[c][p].src) + ". Always confirm on the current state application and the carrier's system.</div>" : "") +
+        '<button type="button" class="btn secondary small" data-edit="' + esc(key) + '">Edit</button>';
     }
     return '<div class="g-prod open">' + head + '<div class="g-body">' + body + "</div></div>";
   }
