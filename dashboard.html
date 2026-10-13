@@ -196,6 +196,51 @@
   .dash-empty { font-size: 13px; color: var(--text-muted); padding: 10px 0; }
   #dashRoot svg { display: block; width: 100%; overflow: visible; }
   #dashRoot text { font-family: inherit; }
+
+  /* ---------- client search ---------- */
+  .find-card { position: relative; padding: 12px 16px; }
+  .find-wrap { display: flex; align-items: center; gap: 10px; }
+  #dashRoot .find-wrap svg, .find-wrap svg { display: inline-block; width: 18px; height: 18px; flex: none; stroke: var(--text-muted); fill: none; stroke-width: 2; stroke-linecap: round; }
+  #clientFind { flex: 1 1 auto; width: 100%; display: block; box-sizing: border-box; font: inherit; font-size: 15px; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--baseline, var(--border));
+    background: var(--page, transparent); color: var(--text-primary); min-width: 0; }
+  .find-results { list-style: none; margin: 8px 0 0; padding: 0; max-height: 340px; overflow-y: auto; }
+  .find-results li a { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 8px 6px; border-radius: 7px;
+    text-decoration: none; color: var(--text-primary); border-bottom: 1px solid var(--border); }
+  .find-results li:last-child a { border-bottom: none; }
+  .find-results li a:hover, .find-results li a.hl { background: var(--series-1-soft); }
+  .find-results b { font-weight: 650; }
+  .find-results .fr-meta { font-size: 12.5px; color: var(--text-muted); }
+  .find-results .fr-st { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .find-empty { font-size: 13px; color: var(--text-muted); padding: 8px 4px 2px; }
+
+  /* ---------- daily summary ---------- */
+  .dsum-head { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 0; font: inherit;
+    cursor: pointer; text-align: left; color: var(--text-primary); }
+  .dsum-head h2 { margin: 0; }
+  .dsum-head .open-all { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--series-1); text-decoration: none; }
+  .fold-chev { font-size: 9px; color: var(--text-muted); transition: transform .15s ease; display: inline-block; width: 10px; }
+  .dsum.shut .dsum-body { display: none; }
+  .dsum.shut > .dsum-head .fold-chev, .dsum-group.shut .fold-chev { transform: rotate(-90deg); }
+  .dsum-body { margin-top: 10px; }
+  .dsum-group + .dsum-group { margin-top: 10px; }
+  .dsum-gh { display: flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; font: inherit; cursor: pointer;
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+  .dsum-gh.late { color: var(--danger); } .dsum-gh.today { color: #b26d00; } .dsum-gh.soon { color: var(--series-1); }
+  .dsum-group.shut ul { display: none; }
+  .dsum ul { list-style: none; margin: 0; padding: 0; }
+  .dsum li a { display: flex; align-items: center; gap: 10px; padding: 7px 4px; font-size: 14px; text-decoration: none; color: var(--text-primary);
+    border-bottom: 1px solid var(--border); }
+  .dsum li:last-child a { border-bottom: none; }
+  .dsum li a:hover { background: rgba(127,127,127,.06); }
+  .dsum .ds-task { flex: 1; min-width: 0; }
+  .dsum .ds-client { font-size: 13px; font-weight: 600; color: var(--series-1); white-space: nowrap; }
+  .due-tag { flex: none; font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+    background: rgba(127,127,127,.12); color: var(--text-secondary); }
+  .due-tag.late { background: var(--danger-soft); color: var(--danger); }
+  .due-tag.today { background: rgba(214,140,20,.16); color: #b26d00; }
+  .due-tag.soon { background: var(--series-1-soft); color: var(--series-1); }
+  .dsum-clear { font-size: 13.5px; color: var(--good); }
+  @media (max-width: 560px) { .dsum li a { flex-wrap: wrap; } .dsum .ds-task { flex-basis: 100%; } }
 </style>
 </head>
 <body>
@@ -237,6 +282,16 @@
     </div>
   </header>
 
+  <div class="card find-card">
+    <div class="find-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></svg>
+      <input type="search" id="clientFind" placeholder="Find a client — name, phone, or policy #" autocomplete="off" aria-label="Find a client">
+    </div>
+    <ul class="find-results" id="findResults"></ul>
+  </div>
+
+  <div class="card dsum" id="dsum"></div>
+
   <div class="dash-tiles" id="dashTiles"></div>
 
   <div class="card">
@@ -271,6 +326,7 @@
       <h2>Goal pace</h2>
       <div id="c-pace"></div>
       <div class="dash-kpi" id="k-pace"></div>
+      <div class="dash-kpi" id="k-subgoal"></div>
     </div>
     <div class="card">
       <h2>Where the AP sits</h2>
@@ -292,6 +348,7 @@
 <script src="hub-outcomes.js"></script>
 <script src="hub-outcomes-ui.js"></script>
 <script src="hub-contract.js"></script>
+<script src="hub-todos.js"></script>
 <script>
 (function () {
   "use strict";
@@ -600,13 +657,113 @@
       : "";
   }
 
+  function escH(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function shortDay(ymd) { var p = String(ymd || "").split("-"); return p.length < 3 ? "" : (+p[1]) + "/" + (+p[2]); }
+
+  /* ---------- find a client (any month) ---------- */
+  var findHl = -1;
+  function renderFind() {
+    var q = $("clientFind").value.trim().toLowerCase();
+    var box = $("findResults");
+    findHl = -1;
+    if (!q) { box.innerHTML = ""; return; }
+    var digits = q.replace(/\D/g, "");
+    var hits = pnl.deals.filter(function (d) {
+      if (String(d.client || "").toLowerCase().indexOf(q) !== -1) return true;
+      if (String(d.policyNum || "").toLowerCase().indexOf(q) !== -1) return true;
+      if (digits.length >= 3 && String(d.phone || "").replace(/\D/g, "").indexOf(digits) !== -1) return true;
+      return false;
+    }).sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }).slice(0, 12);
+    box.innerHTML = hits.length ? hits.map(function (d) {
+      return '<li><a href="pnl.html?deal=' + encodeURIComponent(d.id) + '"><b>' + (escH(d.client) || "(no name)") + "</b>" +
+        '<span class="fr-meta">' + escH([d.carrier, d.policy].filter(Boolean).join(" · ")) +
+        (d.date ? " · Submitted " + shortDay(d.date) + "/" + String(d.date).slice(2, 4) : "") +
+        (d.policyNum ? " · Policy # " + escH(d.policyNum) : "") + "</span>" +
+        '<span class="fr-st">' + escH(d.status || "") + "</span></a></li>";
+    }).join("") : '<li class="find-empty">No client matches “' + escH($("clientFind").value.trim()) + "”.</li>";
+  }
+  $("clientFind").addEventListener("input", renderFind);
+  $("clientFind").addEventListener("keydown", function (ev) {
+    var links = $("findResults").querySelectorAll("a");
+    if (!links.length) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      findHl = (findHl + (ev.key === "ArrowDown" ? 1 : -1) + links.length) % links.length;
+      [].forEach.call(links, function (a, i) { a.classList.toggle("hl", i === findHl); });
+    } else if (ev.key === "Enter") {
+      ev.preventDefault();
+      location.href = links[findHl >= 0 ? findHl : 0].getAttribute("href");
+    } else if (ev.key === "Escape") { this.value = ""; renderFind(); }
+  });
+
+  /* ---------- daily summary (same rules as Client to-dos; read-only here) ---------- */
+  var FOLD_KEY = "agentHub.todayFolded.v1";   // shared with Client to-dos
+  function folded() { try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || {}; } catch (e) { return {}; } }
+  function setFolded(o) { try { localStorage.setItem(FOLD_KEY, JSON.stringify(o)); } catch (e) {} }
+  function renderDailySummary() {
+    if (!window.HubTodos) return;
+    var HT = window.HubTodos;
+    var rows = HT.dueRows(pnl.deals);
+    var groups = [
+      { name: "Overdue", cls: "late", test: function (n) { return n < 0; } },
+      { name: "Due today", cls: "today", test: function (n) { return n === 0; } },
+      { name: "Next 7 days", cls: "soon", test: function (n) { return n >= 1 && n <= 7; } }
+    ];
+    var f = folded();
+    var body = groups.map(function (g) {
+      var mine = rows.filter(function (r) { return g.test(HT.daysFromToday(r.due)); });
+      if (!mine.length) return "";
+      var shut = !!f[g.cls];
+      return '<div class="dsum-group' + (shut ? " shut" : "") + '"><button type="button" class="dsum-gh ' + g.cls + '" data-fold="' + g.cls + '">' +
+        '<span class="fold-chev">&#9660;</span>' + g.name + " " + mine.length + "</button><ul>" +
+        mine.map(function (r) {
+          var n = HT.daysFromToday(r.due);
+          var tag = n < 0 ? "Overdue " + (-n) + "d" : n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : "Due " + shortDay(r.due);
+          var cls = n < 0 ? "late" : n === 0 ? "today" : n <= 2 ? "soon" : "";
+          return '<li><a href="pnl.html?todo=' + encodeURIComponent(r.d.id) + '#todos"><span class="ds-task">' + escH(r.label) + "</span>" +
+            '<span class="ds-client">' + (escH(r.d.client) || "(no name)") + "</span>" +
+            '<span class="due-tag ' + cls + '">' + tag + "</span></a></li>";
+        }).join("") + "</ul></div>";
+    }).join("");
+    var shutAll = !!f.all;
+    var el = $("dsum");
+    el.classList.toggle("shut", shutAll);
+    var dayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    el.innerHTML = '<div class="dsum-head"><button type="button" class="dsum-head" data-fold="all" style="width:auto"><span class="fold-chev">&#9660;</span>' +
+      "<h2>Today &middot; " + escH(dayLabel) + "</h2></button>" +
+      '<a class="open-all" href="pnl.html#todos">Open Client to-dos &rarr;</a></div>' +
+      '<div class="dsum-body">' + (body || '<div class="dsum-clear">Nothing overdue or due in the next 7 days. You\'re all caught up.</div>') + "</div>";
+  }
+  $("dsum").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-fold]");
+    if (!b) return;
+    var o = folded(), k = b.getAttribute("data-fold");
+    o[k] = !o[k];
+    setFolded(o);
+    renderDailySummary();
+  });
+
+  // Submitted AP goal (set on Deals & PNL) -- shown under the issued-AP pace chart.
+  function renderSubGoal() {
+    var g = num((pnl.settings && pnl.settings.subGoals || {})[currentMonth]) || 0;
+    var subAP = monthStats(currentMonth).sub;
+    $("k-subgoal").innerHTML = g
+      ? "Submitted AP: <b>" + money(subAP) + "</b> of " + money(g) + " goal &middot; <b>" + Math.round(subAP / g * 100) + "%</b>" +
+        (subAP >= g ? " <span style='color:var(--good)'><b>Goal hit</b></span>" : " &middot; " + money(g - subAP) + " to go")
+      : "Submitted AP: <b>" + money(subAP) + "</b> &middot; set a submitted AP goal on Deals &amp; PNL";
+  }
+
   /* ---------- render all ---------- */
   function renderAll() {
     $("monthLabel").textContent = monthName(currentMonth);
     $("nextMonth").disabled = currentMonth >= ymOf(todayStr());
     $("nextMonth").style.opacity = $("nextMonth").disabled ? .4 : 1;
-    [["tiles",renderTiles],["followups",renderFollowUps],["trend",renderTrend],
-     ["pace",renderPace],["status",renderStatus],["funnel",renderFunnel]].forEach(function (p) {
+    [["dailySummary",renderDailySummary],["find",renderFind],["tiles",renderTiles],["followups",renderFollowUps],["trend",renderTrend],
+     ["pace",renderPace],["subGoal",renderSubGoal],["status",renderStatus],["funnel",renderFunnel]].forEach(function (p) {
       try { p[1](); } catch (err) { console.error("dashboard section failed: " + p[0], err); }
     });
   }

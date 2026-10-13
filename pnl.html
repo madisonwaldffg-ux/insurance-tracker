@@ -246,6 +246,10 @@
   .goal-fill.reached { background: var(--good); }
   .goal-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--text-muted); margin-top: 8px; }
   .goal-meta .hit { color: var(--good); font-weight: 650; }
+  .goal-row + .goal-row { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .goal-h { font-size: 14px; font-weight: 650; color: var(--text-primary); margin: 0; }
+  .goal-h .hint { font-weight: 400; font-size: 12.5px; color: var(--text-muted); }
+  .goal-row .card-head { margin-bottom: 8px; }
 
   /* ---------- Activity funnel ---------- */
   .funnel { display: flex; align-items: stretch; gap: 2px; flex-wrap: wrap; }
@@ -579,12 +583,23 @@
   <div class="tiles" id="tiles"></div>
 
   <div class="card" id="goalCard">
-    <div class="card-head">
-      <h2>Monthly goal <span class="hint">issued AP</span></h2>
-      <div class="goal-set"><span>Goal:</span> $<input type="number" id="goalInput" min="0" step="100" placeholder="0"></div>
+    <h2>Monthly goals</h2>
+    <div class="goal-row">
+      <div class="card-head">
+        <h3 class="goal-h">Submitted AP <span class="hint">apps written this month</span></h3>
+        <div class="goal-set"><span>Goal:</span> $<input type="number" id="subGoalInput" min="0" step="100" placeholder="0"></div>
+      </div>
+      <div class="goal-track"><div class="goal-fill" id="subGoalFill"></div></div>
+      <div class="goal-meta"><span id="subGoalNow"></span><span id="subGoalRemain"></span></div>
     </div>
-    <div class="goal-track"><div class="goal-fill" id="goalFill"></div></div>
-    <div class="goal-meta"><span id="goalNow"></span><span id="goalRemain"></span></div>
+    <div class="goal-row">
+      <div class="card-head">
+        <h3 class="goal-h">Issued AP <span class="hint">policies issued this month</span></h3>
+        <div class="goal-set"><span>Goal:</span> $<input type="number" id="goalInput" min="0" step="100" placeholder="0"></div>
+      </div>
+      <div class="goal-track"><div class="goal-fill" id="goalFill"></div></div>
+      <div class="goal-meta"><span id="goalNow"></span><span id="goalRemain"></span></div>
+    </div>
   </div>
 
   <div class="deal-scrim" id="dealScrim"></div>
@@ -786,6 +801,7 @@
 <script src="hub-outcomes.js"></script>
 <script src="hub-outcomes-ui.js"></script>
 <script src="hub-contract.js"></script>
+<script src="hub-todos.js"></script>
 <script>
 (function () {
   "use strict";
@@ -1127,60 +1143,15 @@
   //   bene    -> referral calls; non-urgent, no deadline
   //   updates -> only once the policy is issued (due issue/effective date + 3 days)
   // (Keys stay the same as earlier versions so existing check-offs carry over.)
-  var TODO_STEPS = [
-    ["cement", "Complete cementing call + collect referrals", "1–2 business days after submitting the app"],
-    ["updates", "Policy updates needed (beneficiaries, coverage amount, etc.)", "After the policy is issued"],
-    ["bene", "Complete referral calls to beneficiaries and emergency contacts", "No deadline — when you have time"]
-  ];
-  // Declined deals get this instead: call the client, explain, pivot to another carrier if possible.
-  var DECLINE_STEP = ["decline", "Decline follow-up call: inform the client and pivot to another carrier if able", "1 business day after the decline"];
+  // The rules (steps, deadlines) live in hub-todos.js so the Dashboard uses the same ones.
+  var HT = window.HubTodos;
+  var TODO_STEPS = HT.TODO_STEPS, DECLINE_STEP = HT.DECLINE_STEP;
+  var addDays = HT.addDays, addBusinessDays = HT.addBusinessDays, daysFromToday = HT.daysFromToday;
+  var stepEdit = HT.stepEdit, stepLabel = HT.stepLabel, stepDue = HT.stepDue, autoStepDue = HT.autoStepDue;
+  var applicableSteps = HT.applicableSteps, todoSteps = HT.todoSteps, todoDead = HT.todoDead;
   var todoFilter = "open";
   var todoQuery = "";
 
-  function addDays(ymd, n) {
-    var p = String(ymd || "").split("-");
-    if (p.length < 3) return null;
-    var dt = new Date(+p[0], +p[1] - 1, +p[2] + n);
-    return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
-  }
-  // Skips Saturdays and Sundays.
-  function addBusinessDays(ymd, n) {
-    var p = String(ymd || "").split("-");
-    if (p.length < 3) return null;
-    var dt = new Date(+p[0], +p[1] - 1, +p[2]);
-    while (n > 0) {
-      dt.setDate(dt.getDate() + 1);
-      var wd = dt.getDay();
-      if (wd !== 0 && wd !== 6) n--;
-    }
-    return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
-  }
-  function daysFromToday(ymd) {
-    var p = String(ymd || "").split("-");
-    if (p.length < 3) return null;
-    var t = new Date(); t = new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    return Math.round((new Date(+p[0], +p[1] - 1, +p[2]) - t) / 86400000);
-  }
-  // Due date for a standard step, or { waiting: true } when it can't start yet.
-  // Per-client edits to a standard step live in d.todoEdit[key] = { text, due }.
-  function stepEdit(d, key) { return (d.todoEdit && d.todoEdit[key]) || {}; }
-  function stepLabel(d, st) { return stepEdit(d, st[0]).text || st[1]; }
-  function stepDue(d, key) {
-    var ov = stepEdit(d, key).due;
-    if (ov) return { due: ov, custom: true };
-    return autoStepDue(d, key);
-  }
-  function autoStepDue(d, key) {
-    if (key === "cement") return { due: addBusinessDays(d.date, 2) };
-    if (key === "bene") return {};   // non-urgent, no deadline
-    // declinedAt is stamped when the deal is switched to Declined; older declines fall back to the sale date.
-    if (key === "decline") return { due: addBusinessDays(d.declinedAt || d.date, 1) };
-    if (key === "updates") {
-      if (d.status !== "Issued") return { waiting: true };
-      return { due: addDays(d.issuedDate || d.date, 3) };
-    }
-    return {};
-  }
   function dueTag(info) {
     if (info.waiting) return '<span class="due-tag wait">Waiting on issue</span>';
     if (!info.due) return "";
@@ -1266,11 +1237,6 @@
   }
 
   // Standard steps removed for one client live in d.todoHidden (restorable).
-  function applicableSteps(d) { return d.status === "Declined" ? [DECLINE_STEP] : TODO_STEPS; }
-  function todoSteps(d) {
-    var hid = d.todoHidden || {};
-    return applicableSteps(d).filter(function (st) { return !hid[st[0]]; });
-  }
   function todoProgress(d) {
     var t = d.todo || {}, tasks = d.tasks || [], steps = todoSteps(d);
     var total = steps.length + tasks.length, done = 0;
@@ -1278,8 +1244,6 @@
     tasks.forEach(function (x) { if (x.done) done++; });
     return { done: done, total: total, complete: done === total };
   }
-  // Cancelled deals drop off the to-do list; declined ones stay for the follow-up call.
-  function todoDead(d) { return d.status === "Cancelled"; }
   // Earliest deadline among this client's unchecked items (null if none dated).
   function nextDue(d) {
     var t = d.todo || {}, best = null;
@@ -1830,11 +1794,15 @@
   }
 
   /* goal (issued AP, per-month target) */
+  // Submitted AP goal lives in settings.subGoals; issued AP goal in settings.goals (as before).
   function updateGoalBar() {
-    var issued = monthIssuedAP(currentMonth);
-    var goals = (state.settings && state.settings.goals) || {};
+    drawGoal(monthIssuedAP(currentMonth), "goals", "goalFill", "goalNow", "goalRemain", "issued");
+    drawGoal(sum(dealsInMonth(currentMonth), function (d) { return d.ap; }), "subGoals", "subGoalFill", "subGoalNow", "subGoalRemain", "submitted");
+  }
+  function drawGoal(issued, key, fillId, nowId, remId, word) {
+    var goals = (state.settings && state.settings[key]) || {};
     var goal = num(goals[currentMonth]);
-    var fill = $("goalFill"), now = $("goalNow"), rem = $("goalRemain");
+    var fill = $(fillId), now = $(nowId), rem = $(remId);
     if (goal && goal > 0) {
       var pv = issued / goal * 100;
       fill.style.width = Math.min(100, pv).toFixed(1) + "%";
@@ -1845,7 +1813,7 @@
         : (Math.round(pv) + "% · " + money(goal - issued) + " to go");
     } else {
       fill.style.width = "0"; fill.className = "goal-fill";
-      now.textContent = money(issued) + " issued";
+      now.textContent = money(issued) + " " + word;
       rem.textContent = "Set a monthly goal →";
     }
   }
@@ -1853,8 +1821,18 @@
     var goals = (state.settings && state.settings.goals) || {};
     var goal = goals[currentMonth];
     $("goalInput").value = (goal == null ? "" : goal);
+    var sg = ((state.settings && state.settings.subGoals) || {})[currentMonth];
+    $("subGoalInput").value = (sg == null ? "" : sg);
     updateGoalBar();
   }
+  $("subGoalInput").addEventListener("input", function () {
+    state.settings = state.settings || {};
+    state.settings.subGoals = state.settings.subGoals || {};
+    var v = num(this.value);
+    if (v == null) delete state.settings.subGoals[currentMonth]; else state.settings.subGoals[currentMonth] = v;
+    save();
+    updateGoalBar();
+  });
   $("goalInput").addEventListener("input", function () {
     state.settings = state.settings || {};
     state.settings.goals = state.settings.goals || {};
@@ -3072,6 +3050,36 @@
     syncLeadField();
     applyExpCollapse();
     render();
+    handleDeepLink();
+  }
+
+  // Links from the Dashboard: pnl.html?deal=ID opens that deal; pnl.html?todo=ID#todos
+  // jumps to that client's to-do card. Handled once the deals have loaded.
+  var deepLink = (function () {
+    try { var q = new URLSearchParams(location.search); return { deal: q.get("deal"), todo: q.get("todo") }; }
+    catch (e) { return {}; }
+  })();
+  function handleDeepLink() {
+    if (deepLink.deal && findDeal(deepLink.deal)) {
+      var id = deepLink.deal; deepLink = {};
+      history.replaceState(null, "", "pnl.html");
+      gotoDeal(id);
+    } else if (deepLink.todo && findDeal(deepLink.todo)) {
+      var tid = deepLink.todo; deepLink = {};
+      history.replaceState(null, "", "pnl.html#todos");
+      applyView();
+      var card = document.querySelector('.todo-item[data-id="' + tid + '"]');
+      if (!card) {
+        todoFilter = "all";
+        [].forEach.call($("todoFilter").querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-f") === "all"); });
+        renderTodos();
+        card = document.querySelector('.todo-item[data-id="' + tid + '"]');
+      }
+      if (card) {
+        setTimeout(function () { card.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50);
+        card.classList.add("flash"); setTimeout(function () { card.classList.remove("flash"); }, 1600);
+      }
+    }
   }
 
   if (cloudOn) {
