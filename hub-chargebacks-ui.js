@@ -175,14 +175,50 @@
     var e = CB.exposure(d, s.cbRules, date);
     var c = { id: uid(), dealId: d.id, carrier: (e.rule.key || d.carrier || "Other"), client: d.client || "", product: d.policy || "", date: date,
               reason: opts.reason || REASONS[0], amount: opts.amount != null ? opts.amount : (e.amount || e.advance || 0), notes: opts.notes || "",
-              est: opts.amount == null, payments: [] };
+              est: opts.amount == null, auto: !!opts.auto, payments: [] };
     s.chargebacks.push(c);
     return c;
+  }
+
+  // Keep the log in step with the Deals page, however a deal's status changed
+  // (deal form, CSV import, another device, or deals marked before this tab existed):
+  //   deal is Chargeback, no entry      -> log an estimated entry
+  //   linked deal edited                -> refresh client / carrier / product (and the estimate)
+  //   deal no longer Chargeback/deleted -> drop the entry, unless repayments were already recorded
+  // Returns true when anything changed (the caller saves).
+  function sync() {
+    if (!api) return false;
+    var s = S(), changed = false, byId = {};
+    s.deals.forEach(function (d) { byId[d.id] = d; });
+    var linked = {};
+    s.chargebacks = s.chargebacks.filter(function (c) {
+      if (!c.dealId) return true;
+      var d = byId[c.dealId];
+      if (!d || d.status !== "Chargeback") {
+        if (!CB.repaidOf(c)) { changed = true; return false; }        // nothing repaid yet: just remove it
+        if (!d && !c.dealGone) { c.dealGone = true; c.dealId = null; changed = true; }
+        return true;
+      }
+      linked[d.id] = true;
+      var key = CB.ruleFor(d.carrier, d.policy, s.cbRules).key || d.carrier || "Other";
+      if (c.client !== (d.client || "") || c.product !== (d.policy || "") || c.carrier !== key) {
+        c.client = d.client || ""; c.product = d.policy || ""; c.carrier = key; changed = true;
+      }
+      if (c.est && !CB.repaidOf(c)) {
+        var e = CB.exposure(d, s.cbRules, c.date), amt = e.amount || e.advance || 0;
+        if (Math.abs(amt - (+c.amount || 0)) > 0.004) { c.amount = amt; changed = true; }
+      }
+      return true;
+    });
+    s.deals.forEach(function (d) {
+      if (d.status === "Chargeback" && !linked[d.id]) { logFromDeal(d, { date: d.cbAt || CB.today(), auto: true }); changed = true; }
+    });
+    return changed;
   }
   // Called by pnl.html when a deal's status is changed to Chargeback.
   function autoLog(dealId) {
     var d = dealById(dealId); if (!d) return;
-    var c = logFromDeal(d);
+    var c = logFromDeal(d, { date: d.cbAt || CB.today(), auto: true });
     if (c) { api.save(); toast("Logged a <b>" + money(c.amount) + "</b> chargeback for " + esc(c.client || "this client") + " (estimated). <a href=\"pnl.html#chargebacks\">Review it in Chargebacks</a>"); }
   }
   function applyPayment(key, amount, date, note) {
@@ -286,5 +322,5 @@
     }
   });
 
-  global.HubCBUI = { attach: function (a) { api = a; }, render: render, autoLog: autoLog };
+  global.HubCBUI = { attach: function (a) { api = a; }, render: render, autoLog: autoLog, sync: sync };
 })(window);

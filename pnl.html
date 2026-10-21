@@ -1835,6 +1835,8 @@
     }
   }
   function render() {
+    // Mirror Chargeback statuses into the Chargebacks tab before anything draws.
+    if (window.HubCBUI && window.HubCBUI.sync && window.HubCBUI.sync()) save();
     $("monthLabel").textContent = monthLabel(currentMonth);
     safeRender("tiles", renderTiles);
     safeRender("deals", renderDeals);
@@ -2242,6 +2244,7 @@
     // Remember when a deal turned Declined so the follow-up call gets a real deadline.
     var prevDeal = editingId ? state.deals.find(function (x) { return x.id === editingId; }) : null;
     if (rec.status === "Declined" && !(prevDeal && prevDeal.status === "Declined")) rec.declinedAt = todayStr();
+    if (rec.status === "Chargeback" && !(prevDeal && prevDeal.status === "Chargeback")) rec.cbAt = todayStr();
     if (editingId) {
       var i = state.deals.findIndex(function (x) { return x.id === editingId; });
       // Merge over the old record so anything the form doesn't show (the to-do
