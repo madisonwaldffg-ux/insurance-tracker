@@ -225,6 +225,11 @@
   function buildCheck(p) {
     var b = D.build[p.key], h = heightIn(), lbs = +$("uwLbs").value || 0;
     if (!b || !h || !lbs) return null;
+    if (b.bmi) {
+      var bm = 703 * lbs / (h * h), hit = b.bmi.filter(function (x) { return bm >= x[0] && bm <= x[1]; })[0];
+      if (bm < b.bmi[0][0]) return { o: "refer", txt: "BMI " + bm.toFixed(1) + " is under 18.5 — check with carrier" };
+      return hit ? { o: hit[2], txt: "BMI " + bm.toFixed(1) + " fits " + hit[3] } : { o: b.over, txt: b.overText + " (BMI " + bm.toFixed(1) + ")" };
+    }
     var table = b.max;
     if (b.maxM) table = $("uwGender").value === "Female" ? b.maxF : b.maxM;
     var row = table[h];
