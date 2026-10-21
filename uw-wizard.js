@@ -261,8 +261,34 @@
       res.o = worse(res.o, e.o);
       res.lines.push({ o: e.o, c: CMAP[k].label, t: cell.text, why: e.why, notes: e.notes.concat(cell.note ? [cell.note] : []), approx: cell.approx });
     });
+    if (state && p.noStates && p.noStates.indexOf(state) !== -1 && excludesFor(p).indexOf(state) === -1) {
+      res.o = "decline"; res.lines.push({ o: "decline", t: p.name + " is not sold in " + state });
+    }
     var bc = buildCheck(p);
     if (bc) { res.o = worse(res.o, bc.o); res.lines.push({ o: bc.o, c: "Build", t: bc.txt }); }
+    // carrier drug-exclusion lists (e.g. Mutual of Omaha Express)
+    var rxd = D.rxDecline && D.rxDecline[p.key];
+    if (rxd) S.meds.forEach(function (m) {
+      var n = m.name.toLowerCase();
+      var hit = rxd.filter(function (x) { x = x.toLowerCase(); return n === x || n.indexOf(x) === 0 || x.indexOf(n) === 0 && n.length > 4; })[0];
+      if (hit) { res.o = "decline"; res.lines.push({ o: "decline", c: m.name, t: "On the " + p.carrier + " Express drug-exclusion list" }); }
+    });
+    // Mutual of Omaha Express multiple-impairment declines
+    if (p.multi) {
+      var yes = function (k) { return (S.conds[k] || {}).yes; };
+      var dm = yes("dm2") || yes("dm_ins"), tob = $("uwTob").value, h = heightIn(), lbs = +$("uwLbs").value || 0;
+      var t2 = D.build[p.key] && D.build[p.key].t2 && D.build[p.key].t2[h];
+      var overT2 = t2 && lbs > t2;
+      var mi = [];
+      if (dm && age > 45 && (tob === "cig" || tob === "other")) mi.push("diabetes over 45 + tobacco");
+      if (dm && age > 45 && overT2) mi.push("diabetes over 45 + Table 2 build");
+      if (dm && age > 45 && yes("pvd")) mi.push("diabetes over 45 + PVD");
+      if (overT2 && yes("htn")) mi.push("Table 2 build + high blood pressure");
+      if (overT2 && yes("pvd")) mi.push("Table 2 build + PVD");
+      if (overT2 && yes("asthma") && (tob === "cig" || tob === "other")) mi.push("Table 2 build + asthma + tobacco");
+      if (mi.length) { res.o = "decline"; res.lines.push({ o: "decline", c: "Multiple impairments", t: mi.join("; ") + " — Express decline" }); }
+      else if (overT2) res.warn.push("Over the Table 2 build (" + t2 + " lbs) — any other impairment may decline");
+    }
     var tob = $("uwTob").value;
     if (tob === "cig" || tob === "other") {
       if (p.key === "sf" && tob === "other") res.warn.push("Strong Foundation only counts cigarettes as tobacco — non-tobacco rates possible");
