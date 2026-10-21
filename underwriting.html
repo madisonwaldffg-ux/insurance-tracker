@@ -159,7 +159,7 @@
   input[type="number"] { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--page); border: 1px solid var(--baseline); border-radius: 7px; padding: 7px 9px; }
   .hw { display: flex; align-items: center; gap: 5px; }
   .hw input { width: 58px !important; flex: none; }
-  .hw input#w-lbs { width: 72px !important; }
+  .hw input#w-lbs, .hw input#uwLbs { width: 72px !important; }
   .hw span { font-size: 12.5px; color: var(--text-muted); }
   .bmi { font-size: 12.5px; color: var(--series-1); font-weight: 600; min-height: 16px; }
   .yn { display: inline-flex; border: 1px solid var(--baseline); border-radius: 8px; overflow: hidden; align-self: flex-start; }
@@ -196,6 +196,73 @@
   .g-edit-act { grid-column: 1 / -1; display: flex; gap: 8px; }
   .g-src { font-size: 12px; color: var(--text-muted); margin: -2px 0 10px; }
   .g-empty { font-size: 13px; color: var(--text-muted); padding: 4px 14px 12px; }
+  /* ---------- live wizard ---------- */
+  .uw-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; margin-bottom: 16px; }
+  .uw-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .uw-main .card { margin: 0; }
+  .uw-side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; border-radius: 12px; }
+  .uw-side .card { margin: 0; }
+  .uw-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .uw-eyebrow h2 { margin: 0; }
+  .uw-eyebrow .wiz-actions { margin-left: auto; }
+  .uw-num { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--series-1); background: var(--series-1-soft); border-radius: 6px; padding: 3px 7px; }
+  .uw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
+  .uw-grid .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .uw-grid .field.full, .uw-grid .field:first-child { grid-column: 1 / -1; }
+  .uw-grid label { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+  .uw-grid input, .uw-grid select, .uw-grid textarea { width: 100%; box-sizing: border-box; }
+  .uw-grid textarea { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--page); border: 1px solid var(--baseline); border-radius: 7px; padding: 8px 10px; resize: vertical; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--baseline); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+  .seg button { font: inherit; font-size: 13px; font-weight: 650; padding: 7px 14px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--baseline); }
+  .seg button.on { background: var(--series-1); color: #fff; }
+  .uw-carriers { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .uw-carriers summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+  .uw-script { border-left: 3px solid var(--series-1); background: var(--series-1-soft); border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 12px; font-size: 13.5px; font-style: italic; color: var(--text-secondary); }
+  .uw-script p { margin: 4px 0; }
+  .uw-find input, .uw-medadd input { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+  .uw-group { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: var(--surface-1); }
+  .uw-group > summary { cursor: pointer; padding: 10px 14px; font-size: 14px; font-weight: 650; color: var(--text-primary); }
+  .uw-cond { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 14px; border-top: 1px solid var(--border); font-size: 14px; }
+  .uw-cond.yes { background: var(--danger-soft, rgba(220,60,60,.08)); }
+  .uw-cl { color: var(--text-primary); }
+  .yn.sm button { padding: 4px 12px; font-size: 12.5px; }
+  .yn button.on.bad { background: var(--danger, #d03b3b); }
+  .uw-drill { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 8px 14px 12px 28px; background: var(--danger-soft, rgba(220,60,60,.08)); }
+  .uw-drill label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .uw-drill label.wide { grid-column: 1 / -1; }
+  .uw-pill { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+  .uw-pill.bad { background: var(--danger-soft, rgba(220,60,60,.14)); color: var(--danger, #d03b3b); }
+  .uw-medadd { position: relative; }
+  .uw-sugg { position: absolute; z-index: 20; left: 0; right: 0; top: 40px; list-style: none; margin: 0; padding: 4px; background: var(--surface-1); border: 1px solid var(--baseline); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18); max-height: 320px; overflow: auto; }
+  .uw-sugg button { display: block; width: 100%; text-align: left; font: inherit; font-size: 13.5px; padding: 7px 10px; border: none; background: transparent; color: var(--text-primary); cursor: pointer; border-radius: 6px; }
+  .uw-sugg button:hover, .uw-sugg button.hl { background: var(--series-1-soft); }
+  .uw-med { border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; }
+  .uw-med-h { display: flex; justify-content: space-between; align-items: center; }
+  .uw-med ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+  .uw-med li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .uw-ind { color: var(--text-primary); }
+  .todo-x { border: none; background: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; }
+  .linkbtn { border: none; background: none; padding: 0; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--series-1); cursor: pointer; text-decoration: underline; }
+  .uw-tag { display: inline-block; font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .uw-tag.good { background: var(--good-soft, rgba(14,158,70,.14)); color: var(--good, #0e9e46); }
+  .uw-tag.warn { background: rgba(214,140,20,.16); color: #b8740c; }
+  .uw-tag.bad { background: var(--danger-soft, rgba(220,60,60,.14)); color: var(--danger, #d03b3b); }
+  .uw-tag.muted { background: rgba(127,127,127,.14); color: var(--text-muted); }
+  .uw-tally { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; font-size: 12.5px; }
+  .uw-lh { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 14px 0 6px; }
+  .uw-res { border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 9px; padding: 9px 11px; margin-bottom: 7px; background: var(--surface-1); }
+  .uw-res.good { border-left-color: var(--good, #0e9e46); } .uw-res.warn { border-left-color: #d68c14; }
+  .uw-res.bad { border-left-color: var(--danger, #d03b3b); opacity: .72; } .uw-res.muted { border-left-color: var(--text-muted); }
+  .uw-res.top { box-shadow: 0 0 0 2px var(--good-soft, rgba(14,158,70,.25)); }
+  .uw-res-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; font-size: 13.5px; }
+  .uw-why { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12.5px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 3px; }
+  .uw-why .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--text-muted); }
+  .dot.good { background: var(--good, #0e9e46); } .dot.warn { background: #d68c14; } .dot.bad { background: var(--danger, #d03b3b); }
+  .uw-ok { margin: 5px 0 0; font-size: 12.5px; color: var(--good, #0e9e46); }
+  .uw-disc { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  @media (max-width: 1000px) { .uw-layout { grid-template-columns: 1fr; } .uw-side { position: static; max-height: none; } }
+  @media (max-width: 640px) { .uw-drill { grid-template-columns: 1fr; padding-left: 14px; } .seg button { padding: 7px 10px; } }
   @media (max-width: 640px) { .g-sum { grid-template-columns: 1fr; gap: 2px; } .g-sum dd { margin-bottom: 6px; } .g-edit { grid-template-columns: 1fr; } .guide-find { width: 100%; } }
 </style>
 </head>
@@ -235,39 +302,85 @@
     </div>
   </header>
 
-  <div class="card" id="wizCard">
-    <div class="card-head">
-      <h2>Underwriting wizard</h2>
-      <div class="wiz-actions">
-        <button type="button" class="btn" id="wizCopy">Copy for underwriting</button>
-        <button type="button" class="btn secondary" id="wizClear">Clear</button>
-      </div>
-    </div>
-    <p class="wiz-note">Fill in what you know, then copy it to send to underwriting or your upline. Nothing here is saved, so client health details stay off the site.</p>
-    <form id="wizForm" class="wiz-grid" autocomplete="off" onsubmit="return false">
-      <div class="field"><label for="w-age">Age</label><input type="number" id="w-age" min="0" max="120" placeholder="e.g. 67"></div>
-      <div class="field"><label for="w-gender">Gender</label><select id="w-gender"><option value="">—</option><option>Male</option><option>Female</option></select></div>
-      <div class="field"><label for="w-state">State</label><select id="w-state"><option value="">—</option></select></div>
-      <div class="field"><label>Height / Weight</label>
-        <div class="hw">
-          <input type="number" id="w-ft" min="3" max="8" placeholder="ft"><span>ft</span>
-          <input type="number" id="w-in" min="0" max="11" placeholder="in"><span>in</span>
-          <input type="number" id="w-lbs" min="50" max="700" placeholder="lbs"><span>lbs</span>
+  <div class="uw-layout" id="uwWizard">
+    <div class="uw-main">
+
+      <section class="card uw-sec">
+        <div class="uw-eyebrow"><span class="uw-num">01</span><h2>Client</h2>
+          <div class="wiz-actions"><button type="button" class="btn secondary small" id="uwClear">Start over</button></div></div>
+        <p class="wiz-note">Nothing in the wizard is saved — client health details stay on this screen only.</p>
+        <div class="uw-grid">
+          <div class="field"><label>Looking for</label>
+            <div class="seg" id="uwLine">
+              <button type="button" data-v="term">Mortgage protection / term</button>
+              <button type="button" data-v="fe">Final expense / whole life</button>
+              <button type="button" data-v="both" class="on">Both</button>
+            </div></div>
+          <div class="field"><label for="uwAge">Age</label><input type="number" id="uwAge" min="0" max="110" placeholder="e.g. 58"></div>
+          <div class="field"><label for="uwGender">Gender</label><select id="uwGender"><option value="">—</option><option>Female</option><option>Male</option></select></div>
+          <div class="field"><label for="uwState">State</label><select id="uwState"><option value="">—</option></select></div>
+          <div class="field"><label>Height / weight</label>
+            <div class="hw">
+              <input type="number" id="uwFt" min="3" max="8" placeholder="ft"><span>ft</span>
+              <input type="number" id="uwIn" min="0" max="11" placeholder="in"><span>in</span>
+              <input type="number" id="uwLbs" min="50" max="700" placeholder="lbs"><span>lbs</span>
+            </div>
+            <div class="bmi" id="uwBmi"></div></div>
+          <div class="field"><label for="uwTob">Tobacco / nicotine in the last 12 months</label>
+            <select id="uwTob"><option value="">—</option><option value="none">None</option><option value="cig">Cigarettes</option><option value="other">Other (vape, cigars, chew, patch)</option></select></div>
+          <div class="field"><label>US citizen / permanent resident?</label>
+            <div class="yn" data-yn="cit"><button type="button" data-v="Y">Yes</button><button type="button" data-v="N">No</button></div></div>
         </div>
-        <div class="bmi" id="w-bmi"></div>
+        <details class="uw-carriers"><summary>Your contracted carriers <span class="muted" id="uwCarrierCount"></span></summary>
+          <p class="wiz-note">Only the carriers checked here are scored. Saved to your account.</p>
+          <div class="chips" id="w-carriers"></div></details>
+      </section>
+
+      <section class="card uw-sec">
+        <div class="uw-eyebrow"><span class="uw-num">02</span><h2>Health questions</h2></div>
+        <div class="uw-script">
+          <p>"Now, what we'll do is quickly run through a couple of health questions, so that we can match you with the best carrier and get you the best rate. Sound good?"</p>
+          <p>"None of these are knock-out questions — it just makes sure we're looking at the most suitable company. Think of me like your attorney and the insurance company as the judge: the more I know, the better I can help."</p>
+        </div>
+        <div class="uw-find"><input type="text" id="uwCondFind" placeholder="Jump to a condition — e.g. COPD, stent, insulin" autocomplete="off"></div>
+        <p class="wiz-note">Mark Yes on anything they've had. The follow-up questions (when, how it is now) only open for a Yes.</p>
+        <div id="uwConds"></div>
+      </section>
+
+      <section class="card uw-sec">
+        <div class="uw-eyebrow"><span class="uw-num">03</span><h2>Medications</h2></div>
+        <div class="uw-script"><p>"What medications are you currently taking — and what is each one for?"</p></div>
+        <div class="uw-medadd">
+          <input type="text" id="uwMedFind" placeholder="Type a medication name" autocomplete="off">
+          <ul class="uw-sugg" id="uwMedSugg" hidden></ul>
+        </div>
+        <p class="wiz-note">Looked up in the Foresters PlanRight Rx guide (520 drugs). A drug can be prescribed for more than one condition — always ask why they take it.</p>
+        <div id="uwMeds"></div>
+      </section>
+
+      <section class="card uw-sec">
+        <div class="uw-eyebrow"><span class="uw-num">04</span><h2>Hospital stays &amp; surgeries</h2></div>
+        <div class="uw-grid">
+          <div class="field"><label>Hospitalized overnight in the last 2 years?</label>
+            <div class="yn" data-yn="hosp"><button type="button" data-v="Y">Yes</button><button type="button" data-v="N">No</button></div>
+            <input type="text" id="uwHospD" class="yn-detail" placeholder="When / why" hidden></div>
+          <div class="field"><label>Any surgeries?</label>
+            <div class="yn" data-yn="surg"><button type="button" data-v="Y">Yes</button><button type="button" data-v="N">No</button></div>
+            <input type="text" id="uwSurgD" class="yn-detail" placeholder="When / what" hidden></div>
+          <div class="field full"><label for="uwNotes">Other notes for underwriting</label><textarea id="uwNotes" rows="2" placeholder="Anything else they mentioned"></textarea></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="uw-side">
+      <div class="card uw-results">
+        <div class="card-head"><h2>Best carrier matches</h2>
+          <button type="button" class="btn small" id="uwCopy">Copy summary</button></div>
+        <div class="uw-tally" id="uwTally"></div>
+        <div id="uwResults"></div>
+        <p class="uw-disc">Pre-screen only, built from your Founders Financial term and final expense underwriting cheat sheets. The carrier's current application, Rx/MIB check and underwriting decision always control.</p>
       </div>
-      <div class="field"><label>Smoker?</label><div class="yn" data-yn="w-smoker"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div></div>
-      <div class="field full"><label for="w-med">Medical conditions <span class="muted">(include medication names / date diagnosed — e.g. HBP - 1995 Lisinopril)</span></label>
-        <textarea id="w-med" rows="4" placeholder="HBP - 1995 Lisinopril&#10;Type 2 diabetes - 2018 Metformin"></textarea></div>
-      <div class="field"><label>Hospitalizations?</label><div class="yn" data-yn="w-hosp"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div>
-        <input type="text" id="w-hosp-d" class="yn-detail" placeholder="When / why"></div>
-      <div class="field"><label>Surgeries?</label><div class="yn" data-yn="w-surg"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div>
-        <input type="text" id="w-surg-d" class="yn-detail" placeholder="When / what"></div>
-      <div class="field"><label for="w-crim">Criminal record? <span class="muted">(DUIs etc.)</span></label><input type="text" id="w-crim" placeholder="None / DUI 2019"></div>
-      <div class="field"><label>US citizen?</label><div class="yn" data-yn="w-cit"><button type="button" data-v="Y">Y</button><button type="button" data-v="N">N</button></div></div>
-      <div class="field full"><label>Your contracted carriers</label>
-        <div class="chips" id="w-carriers"></div></div>
-    </form>
+    </aside>
   </div>
 
   <div class="card" id="guideCard">
@@ -288,6 +401,7 @@
 <script src="hub-outcomes-ui.js"></script>
 <script src="hub-contract.js"></script>
 <script src="underwriting-guide.js?v=20261013c"></script>
+<script src="uw-data.js?v=20261021"></script>
 <script>
 (function () {
   "use strict";
@@ -309,33 +423,7 @@
   }
   var STATES = [["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["DC","District of Columbia"],["FL","Florida"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"]];
 
-  /* ================= underwriting wizard ================= */
-  // Deliberately never saved: client health details stay in this tab only.
-  STATES.forEach(function (st) { var o = document.createElement("option"); o.value = st[0]; o.textContent = st[1]; $("w-state").appendChild(o); });
-  var yn = {};
-  [].forEach.call(document.querySelectorAll(".yn"), function (g) {
-    g.addEventListener("click", function (ev) {
-      var b = ev.target.closest("button[data-v]");
-      if (!b) return;
-      var k = g.getAttribute("data-yn"), v = b.getAttribute("data-v");
-      yn[k] = yn[k] === v ? "" : v;
-      [].forEach.call(g.querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-v") === yn[k]); });
-      syncDetails();
-    });
-  });
-  function syncDetails() {
-    $("w-hosp-d").style.display = yn["w-hosp"] === "Y" ? "" : "none";
-    $("w-surg-d").style.display = yn["w-surg"] === "Y" ? "" : "none";
-  }
-  function bmi() {
-    var ft = +$("w-ft").value || 0, inch = +$("w-in").value || 0, lbs = +$("w-lbs").value || 0;
-    var h = ft * 12 + inch;
-    return h > 0 && lbs > 0 ? (703 * lbs / (h * h)) : null;
-  }
-  function showBmi() { var b = bmi(); $("w-bmi").textContent = b ? "BMI " + b.toFixed(1) : ""; }
-  ["w-ft", "w-in", "w-lbs"].forEach(function (id) { $(id).addEventListener("input", showBmi); });
-
-  // contracted carriers: remembered per account (not client data)
+  /* Contracted carriers (shared with the wizard in uw-wizard.js; saved to the account) */
   function myCarriers() {
     var saved = pref("uwMyCarriers", null);
     var names = carrierNames();
@@ -347,6 +435,8 @@
       var on = mine.indexOf(c) !== -1;
       return '<button type="button" class="chip' + (on ? " on" : "") + '" data-carrier="' + esc(c) + '">' + esc(c) + "</button>";
     }).join("");
+    var n = $("uwCarrierCount"); if (n) n.textContent = "(" + mine.length + " of " + carrierNames().length + ")";
+    if (window.UWWizard) window.UWWizard.refresh();
   }
   $("w-carriers").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-carrier]");
@@ -356,47 +446,7 @@
     setPref("uwMyCarriers", mine);
     renderChips();
   });
-
-  function wizText() {
-    var ft = $("w-ft").value, inch = $("w-in").value, lbs = $("w-lbs").value, b = bmi();
-    var hw = (ft || inch ? (ft || 0) + "'" + (inch || 0) + '"' : "") + (lbs ? (ft || inch ? " / " : "") + lbs + " lbs" : "") + (b ? " (BMI " + b.toFixed(1) + ")" : "");
-    var st = $("w-state").value;
-    var stName = st ? (STATES.filter(function (x) { return x[0] === st; })[0] || [st, st])[1] : "";
-    function ynLine(k, detailId) {
-      var v = yn[k] || "";
-      var d = detailId && v === "Y" ? $(detailId).value.trim() : "";
-      return v + (d ? " - " + d : "");
-    }
-    return [
-      "Age: " + $("w-age").value,
-      "Gender: " + $("w-gender").value,
-      "State: " + stName,
-      "Height/Weight: " + hw,
-      "Smoker? " + (yn["w-smoker"] || ""),
-      "Medical Conditions: " + ($("w-med").value.trim() ? "\n" + $("w-med").value.trim() : ""),
-      "Hospitalizations? " + ynLine("w-hosp", "w-hosp-d"),
-      "Surgeries? " + ynLine("w-surg", "w-surg-d"),
-      "Criminal Record? " + $("w-crim").value.trim(),
-      "US Citizen? " + (yn["w-cit"] || ""),
-      "Your contracted carriers? " + myCarriers().join(", ")
-    ].join("\n");
-  }
-  function copyText(text, btn) {
-    var done = function () { var old = btn.textContent; btn.textContent = "Copied!"; setTimeout(function () { btn.textContent = old; }, 1200); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallback(); });
-    else fallback();
-    function fallback() {
-      var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
-      document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); done();
-    }
-  }
-  $("wizCopy").addEventListener("click", function () { copyText(wizText(), this); });
-  $("wizClear").addEventListener("click", function () {
-    $("wizForm").reset(); yn = {};
-    [].forEach.call(document.querySelectorAll(".yn button"), function (x) { x.classList.remove("on"); });
-    syncDetails(); showBmi();
-  });
-  syncDetails();
+  window.UWMyCarriers = myCarriers;
 
   /* ================= carrier guides ================= */
   var FIELDS = [
@@ -564,6 +614,7 @@
 })();
 
 </script>
+<script src="uw-wizard.js?v=20261021"></script>
 <script src="tabs-customize.js"></script>
 <script src="hub-shell.js"></script>
 </body>
