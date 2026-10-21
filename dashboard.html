@@ -241,6 +241,12 @@
   .due-tag.soon { background: var(--series-1-soft); color: var(--series-1); }
   .dsum-clear { font-size: 13.5px; color: var(--good); }
   @media (max-width: 560px) { .dsum li a { flex-wrap: wrap; } .dsum .ds-task { flex-basis: 100%; } }
+  .cb-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin: 0 0 16px; padding: 11px 16px; border: 1px solid var(--border);
+    border-left: 4px solid var(--danger); border-radius: 12px; background: var(--surface-1); color: var(--text-secondary); font-size: 13.5px; text-decoration: none; }
+  .cb-strip:hover { border-color: var(--baseline); }
+  .cb-strip b { color: var(--text-primary); } .cb-strip b.neg { color: var(--danger); }
+  .cb-strip-l { font-weight: 700; color: var(--text-primary); }
+  .cb-strip-go { margin-left: auto; font-weight: 600; color: var(--series-1); }
 </style>
 </head>
 <body>
@@ -263,6 +269,7 @@
     <a href="index.html" class="hub-tab">Activity</a>
     <a href="pnl.html" class="hub-tab">Deals &amp; PNL</a>
     <a href="pnl.html#todos" class="hub-tab">Client to-dos</a>
+    <a href="pnl.html#chargebacks" class="hub-tab">Chargebacks</a>
     <a href="carriers.html" class="hub-tab">Carrier links</a>
     <a href="underwriting.html" class="hub-tab">Underwriting</a>
     <a href="leaderboard.html" class="hub-tab" id="boardTab" style="display:none">Leaderboard</a>
@@ -294,6 +301,7 @@
   <div class="card dsum" id="dsum"></div>
 
   <div class="dash-tiles" id="dashTiles"></div>
+  <a class="cb-strip" id="cbStrip" href="pnl.html#chargebacks" style="display:none"></a>
 
   <div class="card">
     <div class="fu-head">
@@ -350,6 +358,7 @@
 <script src="hub-outcomes-ui.js"></script>
 <script src="hub-contract.js"></script>
 <script src="hub-todos.js"></script>
+<script src="chargeback-rules.js"></script>
 <script>
 (function () {
   "use strict";
@@ -397,7 +406,9 @@
       sold: issued.length,
       sub: sum(submitted, function (d) { return d.ap; }),
       iss: sum(issued, function (d) { return d.ap; }),
-      com: sum(issued, earnedCom)
+      com: sum(issued, earnedCom) + (window.HubCB ? pnl.deals.reduce(function (t, d) {
+        return d.status === "Chargeback" && ymOf(d.issuedDate || d.date) === ym ? t + window.HubCB.keptCom(d, pnl) : t;
+      }, 0) : 0)
     };
   }
 
@@ -428,6 +439,20 @@
     $("dashTiles").innerHTML = defs.map(function (t) {
       return '<div class="tile"><div class="t-label">' + t.l + '</div><div class="t-value">' + t.v + "</div>" + t.p + "</div>";
     }).join("");
+  }
+
+  /* ---------- chargebacks strip ---------- */
+  function renderCbStrip() {
+    var el = $("cbStrip"); if (!el || !window.HubCB) return;
+    var owed = window.HubCB.totalOwed(pnl), risk = window.HubCB.atRisk(pnl);
+    var riskAmt = risk.reduce(function (t, x) { return t + x.amount; }, 0);
+    var soon = risk.filter(function (x) { return x.daysLeft <= 30; }).length;
+    if (!owed && !risk.length) { el.style.display = "none"; return; }
+    el.style.display = "";
+    el.innerHTML = '<span class="cb-strip-l">Chargebacks</span>' +
+      (owed ? '<span><b class="neg">' + money(owed) + "</b> owed to carriers</span>" : '<span><b>$0</b> owed</span>') +
+      (risk.length ? "<span><b>" + money(riskAmt) + "</b> at risk on " + risk.length + " polic" + (risk.length === 1 ? "y" : "ies") + (soon ? " · " + soon + " leave the window in 30 days" : "") + "</span>" : "") +
+      '<span class="cb-strip-go">Open &rarr;</span>';
   }
 
   /* ---------- needs follow-up ---------- */
@@ -763,7 +788,7 @@
     $("monthLabel").textContent = monthName(currentMonth);
     $("nextMonth").disabled = currentMonth >= ymOf(todayStr());
     $("nextMonth").style.opacity = $("nextMonth").disabled ? .4 : 1;
-    [["dailySummary",renderDailySummary],["find",renderFind],["tiles",renderTiles],["followups",renderFollowUps],["trend",renderTrend],
+    [["dailySummary",renderDailySummary],["find",renderFind],["tiles",renderTiles],["cbStrip",renderCbStrip],["followups",renderFollowUps],["trend",renderTrend],
      ["pace",renderPace],["subGoal",renderSubGoal],["status",renderStatus],["funnel",renderFunnel]].forEach(function (p) {
       try { p[1](); } catch (err) { console.error("dashboard section failed: " + p[0], err); }
     });
