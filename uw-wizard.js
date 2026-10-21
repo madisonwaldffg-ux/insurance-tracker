@@ -20,9 +20,9 @@
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
-  var RANK = { best: 0, std: 1, graded: 2, gi: 3, refer: 4, decline: 5 };
-  var LABEL = { best: "Level / preferred", std: "Standard / rated", graded: "Graded / modified", gi: "Guaranteed issue only", refer: "Check with carrier", decline: "Decline" };
-  var TONE = { best: "good", std: "good", graded: "warn", gi: "warn", refer: "muted", decline: "bad" };
+  var RANK = { best: 0, std: 1, graded: 2, rop: 3, gi: 4, refer: 5, decline: 6 };
+  var LABEL = { best: "Level / preferred", std: "Standard / rated", graded: "Graded / modified", rop: "Return-of-premium plan", gi: "Guaranteed issue only", refer: "Check with carrier", decline: "Decline" };
+  var TONE = { best: "good", std: "good", graded: "warn", rop: "warn", gi: "warn", refer: "muted", decline: "bad" };
   function worse(a, b) { return RANK[a] >= RANK[b] ? a : b; }
 
   // product carrier name -> name used in underwriting-guide.js (contracted chips)
@@ -262,6 +262,7 @@
         return;
       }
       var e = evalCell(cell, st);
+      if (cell.under && age && age < cell.under) { e.o = "decline"; e.why = "age under " + cell.under + ": Decline"; }
       // on fully/accelerated-underwritten term, a plain "Accept" means insurable, usually at standard or table rates
       if (p.line === "term" && e.o === "best" && /accept/i.test(cell.text) && !/pref/i.test(cell.text)) e.o = "std";
       res.o = worse(res.o, e.o);
@@ -280,8 +281,18 @@
     if (rxd) S.meds.forEach(function (m) {
       var n = m.name.toLowerCase();
       var hit = rxd.filter(function (x) { x = x.toLowerCase(); return n === x || n.indexOf(x) === 0 || x.indexOf(n) === 0 && n.length > 4; })[0];
-      if (hit) { res.o = "decline"; res.lines.push({ o: "decline", c: m.name, t: "On the " + p.carrier + " Express drug-exclusion list" }); }
+      if (hit) { res.o = "decline"; res.lines.push({ o: "decline", c: m.name, t: "On the " + p.carrier + " " + p.name + " drug-exclusion list" }); }
     });
+    var rxg = D.rxGraded && D.rxGraded[p.key];
+    if (rxg) S.meds.forEach(function (m) {
+      var n = m.name.toLowerCase();
+      if (rxg.some(function (x) { x = x.toLowerCase(); return n === x || n.indexOf(x) === 0; })) {
+        res.o = worse(res.o, "graded"); res.lines.push({ o: "graded", c: m.name, t: "On the " + p.name + " drug list — Graded plan at best" });
+      }
+    });
+    if (p.gradedMaxAge && age > p.gradedMaxAge && (res.o === "graded" || res.o === "rop")) {
+      res.o = "decline"; res.lines.push({ o: "decline", t: "Graded plan only goes to age " + p.gradedMaxAge });
+    }
     // Mutual of Omaha Express multiple-impairment declines
     if (p.multi) {
       var yes = function (k) { return (S.conds[k] || {}).yes; };
@@ -306,7 +317,7 @@
     }
     if (S.yn.cit === "N") res.warn.push("Not a US citizen — check residency rules");
     // a guaranteed-issue product never ranks above real underwriting
-    res.rank = RANK[res.o] + (p.gi && res.o === "best" ? 3 : 0);
+    res.rank = p.gi && res.o === "best" ? RANK.gi : RANK[res.o];
     res.label = p.gi && res.o === "best" ? "Guaranteed issue (2-yr graded)" : LABEL[res.o];
     res.tone = p.gi && res.o === "best" ? "warn" : TONE[res.o];
     return res;
