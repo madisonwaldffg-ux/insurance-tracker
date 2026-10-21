@@ -235,6 +235,7 @@
     var row = table[h];
     if (!row) return { o: "refer", txt: "height outside the " + p.carrier + " build chart — check" };
     if (b.min && b.min[h] && lbs < b.min[h]) return { o: "decline", txt: "under the minimum weight (" + b.min[h] + " lbs)" };
+    if (b.minLevel && b.minLevel[h] && lbs < b.minLevel[h]) return { o: "graded", txt: "under the level-plan minimum (" + b.minLevel[h] + " lbs) — graded only" };
     for (var i = 0; i < row.length; i++) {
       if (row[i] != null && lbs <= row[i]) {
         var o = b.tierOut ? b.tierOut[i] : (i === 0 ? "best" : "std");
@@ -268,6 +269,9 @@
     });
     if (state && p.noStates && p.noStates.indexOf(state) !== -1 && excludesFor(p).indexOf(state) === -1) {
       res.o = "decline"; res.lines.push({ o: "decline", t: p.name + " is not sold in " + state });
+    }
+    if (p.smokerGradedFrom && age >= p.smokerGradedFrom && ($("uwTob").value === "cig" || $("uwTob").value === "other")) {
+      res.o = worse(res.o, "graded"); res.lines.push({ o: "graded", c: "Tobacco", t: "No level plan for smokers age " + p.smokerGradedFrom + "+ — graded only" });
     }
     var bc = buildCheck(p);
     if (bc) { res.o = worse(res.o, bc.o); res.lines.push({ o: bc.o, c: "Build", t: bc.txt }); }
