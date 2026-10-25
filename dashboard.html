@@ -735,10 +735,9 @@
     if (!window.HubTodos) return;
     var HT = window.HubTodos;
     var rows = HT.dueRows(pnl.deals);
+    // Dashboard shows today's to-dos only; overdue and upcoming live on Client to-dos.
     var groups = [
-      { name: "Overdue", cls: "late", test: function (n) { return n < 0; } },
-      { name: "Due today", cls: "today", test: function (n) { return n === 0; } },
-      { name: "Next 7 days", cls: "soon", test: function (n) { return n >= 1 && n <= 7; } }
+      { name: "Due today", cls: "today", test: function (n) { return n === 0; } }
     ];
     var f = folded();
     var body = groups.map(function (g) {
@@ -763,7 +762,7 @@
     el.innerHTML = '<div class="dsum-head"><button type="button" class="dsum-head" data-fold="all" style="width:auto"><span class="fold-chev">&#9660;</span>' +
       "<h2>Today &middot; " + escH(dayLabel) + "</h2></button>" +
       '<a class="open-all" href="pnl.html#todos">Open Client to-dos &rarr;</a></div>' +
-      '<div class="dsum-body">' + (body || '<div class="dsum-clear">Nothing overdue or due in the next 7 days. You\'re all caught up.</div>') + "</div>";
+      '<div class="dsum-body">' + (body || '<div class="dsum-clear">Nothing due today. You\'re all caught up.</div>') + "</div>";
   }
   $("dsum").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-fold]");
