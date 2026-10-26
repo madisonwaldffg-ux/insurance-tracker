@@ -1855,7 +1855,7 @@
               (eff.edited ? ' <button type="button" class="linkbtn" data-pay-reset="' + esc(r.key) + '">Reset</button>' : "")) + "</td>" +
           '<td class="cb-note">' + SRC[r.src] + "</td></tr>";
       }).join("") + "</tbody></table></div>" +
-      '<p class="cb-fine">The countdown starts from the deal\'s Effective date (the first draft). Carriers that pay on issue can pay a few days before that. Amounts are the advance (or one month of commission for as-earned carriers), using the advance months in Chargebacks → carrier rules.</p>';
+      '<p class="cb-fine">The countdown starts from the deal\'s Effective date (the first draft). Carriers that pay on issue can pay a few days before that. Amounts are the deal\'s commission, which is already the 9-month advance. Carriers set to a different advance length in Chargebacks → carrier rules are scaled to match (CICA\'s 6 months is 6/9 of it).</p>';
   }
   $("payFilter").addEventListener("click", function (ev) {
     var b = ev.target.closest("button[data-f]"); if (!b) return;

@@ -2,7 +2,7 @@
    chargeback-rules.js -- carrier advance & chargeback rules, plus the math the
    Chargebacks view (pnl.html#chargebacks) and the Dashboard share.
 
-   Commission on a deal (d.com) is the full first-year commission. Carriers that
+   Commission on a deal (d.com) is the 9-month advance (AP x rate x 9/12). Carriers that
    advance pay `adv` months of it up front (9 months = 75%). If the policy lapses
    inside the chargeback window, the unearned part of that advance comes back:
      lapse: [[fromMonth, toMonth, pct | "pro"], ...]  by months paid
@@ -140,7 +140,11 @@
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
 
-  function advanceOf(d, r) { var com = +d.com || 0; return r.adv > 0 ? com * Math.min(r.adv, 12) / 12 : 0; }
+  // d.com is already the 9-month advance (the deal form fills it as AP x rate x 9/12).
+  // A 9-month carrier advances exactly that; others scale from it (CICA 6 mo = com x 6/9).
+  var COM_MONTHS = 9;
+  function annualCom(d) { return (+d.com || 0) * 12 / COM_MONTHS; }
+  function advanceOf(d, r) { return r.adv > 0 ? Math.round(annualCom(d) * Math.min(r.adv, 12) / 12 * 100) / 100 : 0; }
   // % of the advance a schedule takes back at month m (null = outside the window)
   function pctAt(sched, m, adv) {
     for (var i = 0; i < (sched || []).length; i++) {
@@ -210,7 +214,7 @@
     RULES: RULES, DEFAULT: DEFAULT, PRO: PRO,
     findRule: findRule, ruleFor: ruleFor, fullMonths: fullMonths, windowMonths: windowMonths,
     monthsBetween: monthsBetween, addMonths: addMonths, today: today,
-    advanceOf: advanceOf, exposure: exposure, atRisk: atRisk, balances: balances, totalOwed: totalOwed,
+    advanceOf: advanceOf, annualCom: annualCom, COM_MONTHS: COM_MONTHS, exposure: exposure, atRisk: atRisk, balances: balances, totalOwed: totalOwed,
     repaidOf: repaidOf, keptCom: keptCom
   };
 })(window);

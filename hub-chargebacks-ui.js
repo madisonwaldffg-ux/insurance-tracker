@@ -88,7 +88,7 @@
             ' <button type="button" class="btn secondary small" data-cb-deal="' + d.id + '">Charged back</button></td></tr>';
         }).join("") + "</tbody></table></div>" +
         (risk.length > 12 ? '<button type="button" class="btn secondary small" id="cbRiskMore">' + (showAllRisk ? "Show fewer" : "Show all " + risk.length) + "</button>" : "") +
-        '<p class="cb-fine">"If it lapsed today" is the unearned part of the advance, estimated as commission × advance months ÷ 12, then the carrier\'s schedule. It uses the effective date (or the submitted date if there isn\'t one).</p>';
+        '<p class="cb-fine">"If it lapsed today" is the unearned part of the advance, based on the deal\'s commission (already the 9-month advance; carriers that advance 6 or 12 months are scaled to match), then the carrier\'s schedule. It uses the effective date (or the submitted date if there isn\'t one).</p>';
     }
     html += "</section>";
 
@@ -116,7 +116,7 @@
         var eff = CB.ruleFor(r.key, "", s.cbRules), o = s.cbRules[r.key] || {};
         var src = SRC[r.src] || SRC.default;
         return '<tr><td><b>' + esc(r.key) + "</b>" + (o.adv != null || o.full != null || o.win != null ? ' <span class="cb-est">edited</span>' : "") + '<div class="cb-note">' + esc(r.note) + "</div></td>" +
-          '<td><input type="number" min="0" max="12" step="1" class="cb-in" data-rule="' + esc(r.key) + '" data-f="adv" value="' + eff.adv + '"> mo <span class="muted">(' + Math.round(Math.min(eff.adv, 12) / 12 * 100) + "%)</span></td>" +
+          '<td><input type="number" min="0" max="12" step="1" class="cb-in" data-rule="' + esc(r.key) + '" data-f="adv" value="' + eff.adv + '"> mo <span class="muted">(' + Math.round(Math.min(eff.adv, 12) / CB.COM_MONTHS * 100) + "% of deal commission)</span></td>" +
           '<td><input type="number" min="0" max="24" step="1" class="cb-in" data-rule="' + esc(r.key) + '" data-f="full" value="' + CB.fullMonths(eff.lapse) + '"> mo</td>' +
           '<td><input type="number" min="0" max="36" step="1" class="cb-in" data-rule="' + esc(r.key) + '" data-f="win" value="' + CB.windowMonths(eff) + '"> mo</td>' +
           '<td class="cb-note">' + esc(r.deathNote || (r.death && r.death.length ? "Pro-rata, like a lapse" : "Not published")) + "</td>" +

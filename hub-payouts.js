@@ -80,8 +80,9 @@
     if (!com) return { amount: 0, label: "" };
     if (global.HubCB) {
       var cr = global.HubCB.ruleFor(d.carrier, d.policy, state && state.cbRules);
-      if (cr.adv > 0) return { amount: Math.round(com * Math.min(cr.adv, 12) / 12 * 100) / 100, label: cr.adv + "-month advance" };
-      return { amount: Math.round(com / 12 * 100) / 100, label: "first month (as earned)" };
+      // The deal's commission is already the 9-month advance, so a 9-month carrier pays exactly that.
+      if (cr.adv > 0) return { amount: global.HubCB.advanceOf(d, cr), label: cr.adv + "-month advance" };
+      return { amount: Math.round(global.HubCB.annualCom(d) / 12 * 100) / 100, label: "first month (as earned)" };
     }
     return { amount: com, label: "" };
   }
