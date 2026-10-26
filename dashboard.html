@@ -246,6 +246,7 @@
   .cb-strip:hover { border-color: var(--baseline); }
   .cb-strip b { color: var(--text-primary); } .cb-strip b.neg { color: var(--danger); }
   .cb-strip-l { font-weight: 700; color: var(--text-primary); }
+  .pay-strip { border-left-color: var(--good, #0e9e46); }
   .cb-strip-go { margin-left: auto; font-weight: 600; color: var(--series-1); }
 </style>
 </head>
@@ -302,6 +303,7 @@
   <div class="card dsum" id="dsum"></div>
 
   <div class="dash-tiles" id="dashTiles"></div>
+  <a class="cb-strip pay-strip" id="payStrip" href="pnl.html#payCard" style="display:none"></a>
   <a class="cb-strip" id="cbStrip" href="pnl.html#chargebacks" style="display:none"></a>
 
   <div class="card">
@@ -360,6 +362,7 @@
 <script src="hub-contract.js"></script>
 <script src="hub-todos.js"></script>
 <script src="chargeback-rules.js"></script>
+<script src="hub-payouts.js"></script>
 <script>
 (function () {
   "use strict";
@@ -440,6 +443,18 @@
     $("dashTiles").innerHTML = defs.map(function (t) {
       return '<div class="tile"><div class="t-label">' + t.l + '</div><div class="t-value">' + t.v + "</div>" + t.p + "</div>";
     }).join("");
+  }
+
+  /* ---------- incoming commissions strip ---------- */
+  function renderPayStrip() {
+    var el = $("payStrip"); if (!el || !window.HubPay) return;
+    var sm = window.HubPay.summary(pnl);
+    if (!sm.weekN && !sm.lateN) { el.style.display = "none"; return; }
+    el.style.display = "";
+    el.innerHTML = '<span class="cb-strip-l">Commission</span>' +
+      "<span><b>" + money(sm.week) + "</b> expected in the next 7 days" + (sm.weekN ? " (" + sm.weekN + ")" : "") + "</span>" +
+      (sm.lateN ? '<span><b class="neg">' + money(sm.late) + "</b> past due (" + sm.lateN + ")</span>" : "") +
+      '<span class="cb-strip-go">Open &rarr;</span>';
   }
 
   /* ---------- chargebacks strip ---------- */
@@ -788,7 +803,7 @@
     $("monthLabel").textContent = monthName(currentMonth);
     $("nextMonth").disabled = currentMonth >= ymOf(todayStr());
     $("nextMonth").style.opacity = $("nextMonth").disabled ? .4 : 1;
-    [["dailySummary",renderDailySummary],["find",renderFind],["tiles",renderTiles],["cbStrip",renderCbStrip],["followups",renderFollowUps],["trend",renderTrend],
+    [["dailySummary",renderDailySummary],["find",renderFind],["tiles",renderTiles],["payStrip",renderPayStrip],["cbStrip",renderCbStrip],["followups",renderFollowUps],["trend",renderTrend],
      ["pace",renderPace],["subGoal",renderSubGoal],["status",renderStatus],["funnel",renderFunnel]].forEach(function (p) {
       try { p[1](); } catch (err) { console.error("dashboard section failed: " + p[0], err); }
     });

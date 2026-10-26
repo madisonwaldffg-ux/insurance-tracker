@@ -386,6 +386,36 @@
 
   .email-tool { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
   .email-tool svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  /* ---------- Incoming commissions ---------- */
+  .pay-sum { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 12px; font-size: 13.5px; color: var(--text-secondary); }
+  .pay-sum b { color: var(--text-primary); font-size: 15px; }
+  .pay-sum .late b { color: var(--danger); }
+  .pay-group { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin: 12px 0 4px; }
+  .pay-group.late { color: var(--danger); }
+  .pay-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.3fr) minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--grid, var(--border)); font-size: 13.5px; }
+  .pay-row a { color: var(--series-1); font-weight: 600; text-decoration: none; }
+  .pay-row .muted { color: var(--text-muted); font-size: 12px; }
+  .pay-row .amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .pay-row .amt small { display: block; font-weight: 400; color: var(--text-muted); font-size: 11.5px; }
+  .pay-when { display: flex; flex-direction: column; }
+  .pay-tag { display: inline-block; font-size: 11.5px; font-weight: 650; padding: 1px 8px; border-radius: 999px; width: fit-content; }
+  .pay-tag.late { background: var(--danger-soft); color: var(--danger); }
+  .pay-tag.today { background: var(--good-soft, rgba(14,158,70,.14)); color: var(--good, #0e9e46); }
+  .pay-tag.soon { background: var(--series-1-soft); color: var(--series-1); }
+  .pay-tag.later { background: rgba(127,127,127,.12); color: var(--text-muted); }
+  .pay-rules { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .pay-rules summary { cursor: pointer; font-size: 13.5px; font-weight: 650; color: var(--text-secondary); }
+  .pay-rules summary .hint { margin-left: 8px; font-weight: 400; color: var(--text-muted); }
+  .pay-rules table { margin-top: 8px; }
+  .pay-rules td { vertical-align: top; font-size: 13px; }
+  .pay-rules input { width: 58px; font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--baseline); border-radius: 6px; background: var(--page); color: var(--text-primary); }
+  @media (max-width: 720px) {
+    .pay-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .pay-row .pay-car { grid-column: 1; } .pay-row .pay-when { grid-column: 1; } .pay-row .amt { grid-column: 2; grid-row: 1; }
+    .pay-row .pay-act { grid-column: 2; grid-row: 2 / span 2; }
+  }
+
   /* ---------- Chargebacks view (pnl.html#chargebacks) ---------- */
   body:not(.view-cb) #cbCard { display: none; }
   body.view-cb .wrap > .card:not(#cbCard), body.view-cb #tiles,
@@ -765,6 +795,18 @@
 
   <div class="card" id="cbCard"><div id="cbRoot"></div></div>
 
+  <div class="card" id="payCard">
+    <div class="card-head">
+      <h2>Incoming commissions <span class="hint" id="payHint"></span></h2>
+      <div class="pay-filter seg" id="payFilter">
+        <button type="button" data-f="soon" class="on">Next 14 days</button>
+        <button type="button" data-f="all">All unpaid</button>
+      </div>
+    </div>
+    <div id="payBody"></div>
+    <details class="pay-rules" id="payRules"><summary>Carrier payout timing <span class="hint">edit to match your statements</span></summary><div id="payRulesBody"></div></details>
+  </div>
+
   <div class="card">
     <div class="card-head">
       <h2>Deals <span class="hint" id="dealCount"></span></h2>
@@ -871,6 +913,7 @@
 <script src="hub-todos.js"></script>
 <script src="chargeback-rules.js"></script>
 <script src="hub-chargebacks-ui.js"></script>
+<script src="hub-payouts.js"></script>
 <script>
 (function () {
   "use strict";
@@ -1123,6 +1166,7 @@
         ["Monthly", money(d.monthly)],
         ["Lead type", esc(d.lead) || "&mdash;"],
         ["Effective date", d.issuedDate ? fmtDay(d.issuedDate) : "&mdash;"],
+        ["Commission payout", payoutDetail(d)],
         ["Draft date", draftDayOf(d) ? draftDayLabel(draftDayOf(d)) : "&mdash;"],
         ["State", esc(d.state) || "&mdash;"],
         ["Beneficiary", esc(d.beneficiary) || "&mdash;"],
@@ -1747,6 +1791,95 @@
   window.addEventListener("popstate", applyView);
   if (location.hash === "#todos" || location.hash === "#chargebacks") applyView();
 
+  /* ---------- incoming commissions (hub-payouts.js) ---------- */
+  var payFilter = "soon";
+  function payoutDetail(d) {
+    if (!window.HubPay) return "&mdash;";
+    if (d.paid) return "Paid" + (d.paidOn ? " " + fmtDay(d.paidOn) : "");
+    if (!(num(d.com) > 0) || !{ Issued: 1, Pending: 1, Submitted: 1 }[d.status]) return "&mdash;";
+    var exp = window.HubPay.expectedDate(d, state.payRules);
+    if (!exp) return "&mdash;";
+    var a = window.HubPay.amountOf(d, state);
+    return "~" + money(a.amount) + " expected " + fmtDay(exp) + (d.status !== "Issued" ? " (once issued)" : "") +
+      (d.issuedDate ? "" : ' <span class="muted">(add the effective date for a better estimate)</span>');
+  }
+  function payTag(days) {
+    if (days < 0) return '<span class="pay-tag late">' + (-days) + " day" + (days === -1 ? "" : "s") + " late</span>";
+    if (days === 0) return '<span class="pay-tag today">Today</span>';
+    if (days === 1) return '<span class="pay-tag soon">Tomorrow</span>';
+    return '<span class="pay-tag ' + (days <= 7 ? "soon" : "later") + '">In ' + days + " days</span>";
+  }
+  function renderPayouts() {
+    if (!window.HubPay || !$("payBody")) return;
+    var HP = window.HubPay;
+    var rows = HP.incoming(state), sm = HP.summary(state);
+    var shown = payFilter === "soon" ? rows.filter(function (x) { return x.days <= 14; }) : rows;
+    $("payHint").textContent = rows.length ? rows.length + " unpaid" : "";
+    var html = '<div class="pay-sum">' +
+      "<span>Expected in the next 7 days: <b>" + money(sm.week) + "</b> (" + sm.weekN + ")</span>" +
+      (sm.lateN ? '<span class="late">Past due: <b>' + money(sm.late) + "</b> (" + sm.lateN + ") — check with the carrier</span>" : "") +
+      "</div>";
+    if (!shown.length) {
+      html += '<div class="empty">' + (rows.length ? "Nothing expected in the next 14 days. Switch to All unpaid to see the rest."
+        : "No unpaid commissions. Issued deals show here with the date the carrier should pay, until you mark them Paid.") + "</div>";
+    } else {
+      var groups = [["Past due", "late", function (x) { return x.days < 0; }], ["This week", "", function (x) { return x.days >= 0 && x.days <= 7; }],
+                    ["Later", "", function (x) { return x.days > 7; }]];
+      groups.forEach(function (g) {
+        var list = shown.filter(g[2]);
+        if (!list.length) return;
+        html += '<div class="pay-group ' + g[1] + '">' + g[0] + "</div>";
+        html += list.map(function (x) {
+          var d = x.d;
+          return '<div class="pay-row"><div><a href="#" data-pay-goto="' + d.id + '">' + esc(d.client || "—") + "</a>" +
+            (x.issued ? "" : ' <span class="muted">· ' + esc(d.status) + "</span>") + "</div>" +
+            '<div class="pay-car">' + esc(d.carrier || "") + (d.policy ? ' <span class="muted">· ' + esc(d.policy) + "</span>" : "") + "</div>" +
+            '<div class="pay-when"><span>' + fmtDay(x.exp) + " " + payTag(x.days) + '</span><span class="muted">' + esc(HP.describe(x.rule)) +
+              (d.issuedDate ? "" : " · from submitted date") + "</span></div>" +
+            '<div class="amt">' + money(x.amount) + "<small>" + esc(x.amountLabel) + "</small></div>" +
+            '<div class="pay-act"><button type="button" class="btn secondary small" data-pay-paid="' + d.id + '">Mark paid</button></div></div>';
+        }).join("");
+      });
+    }
+    $("payBody").innerHTML = html;
+    // carrier timing table
+    var SRC = { guide: "Your carrier guide", web: "Published agent material", "default": "Typical — check your statements" };
+    var ov = state.payRules || {};
+    $("payRulesBody").innerHTML = '<div class="table-scroll"><table><thead><tr><th>Carrier</th><th>Paid</th><th>Business days</th><th>Source</th></tr></thead><tbody>' +
+      HP.RULES.map(function (r) {
+        var eff = HP.ruleFor(r.key, ov);
+        return "<tr><td><b>" + esc(r.key) + '</b><div class="cb-note">' + esc(r.note) + "</div></td>" +
+          "<td>" + (r.kind === "weekly" ? "Weekly cycle" : r.basis === "issue" ? "After issue" : "After first draft") + "</td>" +
+          "<td>" + (r.kind === "weekly" ? '<span class="muted">Friday of the following week</span>'
+            : '<input type="number" min="0" max="60" step="1" data-pay-rule="' + esc(r.key) + '" value="' + eff.days + '">' +
+              (eff.edited ? ' <button type="button" class="linkbtn" data-pay-reset="' + esc(r.key) + '">Reset</button>' : "")) + "</td>" +
+          '<td class="cb-note">' + SRC[r.src] + "</td></tr>";
+      }).join("") + "</tbody></table></div>" +
+      '<p class="cb-fine">The countdown starts from the deal\'s Effective date (the first draft). Carriers that pay on issue can pay a few days before that. Amounts are the advance (or one month of commission for as-earned carriers), using the advance months in Chargebacks → carrier rules.</p>';
+  }
+  $("payFilter").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-f]"); if (!b) return;
+    payFilter = b.getAttribute("data-f");
+    [].forEach.call(this.querySelectorAll("button"), function (x) { x.classList.toggle("on", x === b); });
+    renderPayouts();
+  });
+  $("payCard").addEventListener("click", function (ev) {
+    var b;
+    if ((b = ev.target.closest("[data-pay-goto]"))) { ev.preventDefault(); gotoDeal(b.getAttribute("data-pay-goto")); return; }
+    if ((b = ev.target.closest("[data-pay-paid]"))) {
+      var d = findDeal(b.getAttribute("data-pay-paid"));
+      if (d) { d.paid = true; d.paidOn = todayStr(); save(); render(); }
+      return;
+    }
+    if ((b = ev.target.closest("[data-pay-reset]"))) { delete (state.payRules || {})[b.getAttribute("data-pay-reset")]; save(); render(); }
+  });
+  $("payCard").addEventListener("change", function (ev) {
+    var t = ev.target; if (!t.hasAttribute("data-pay-rule")) return;
+    state.payRules = state.payRules || {};
+    state.payRules[t.getAttribute("data-pay-rule")] = { days: t.value === "" ? null : Math.max(0, parseInt(t.value, 10) || 0) };
+    save(); render();
+  });
+
   // Chargebacks view (hub-chargebacks-ui.js) works on this page's state.
   function renderChargebacks() { if (window.HubCBUI) window.HubCBUI.render(); }
   if (window.HubCBUI) window.HubCBUI.attach({
@@ -1856,6 +1989,7 @@
     safeRender("goal", renderGoal);
     safeRender("todos", renderTodos);
     safeRender("chargebacks", renderChargebacks);
+    safeRender("payouts", renderPayouts);
   }
 
   /* ---------- month analytics: goal, funnel, trend ---------- */
@@ -2253,6 +2387,7 @@
     var prevDeal = editingId ? state.deals.find(function (x) { return x.id === editingId; }) : null;
     if (rec.status === "Declined" && !(prevDeal && prevDeal.status === "Declined")) rec.declinedAt = todayStr();
     if (rec.status === "Chargeback" && !(prevDeal && prevDeal.status === "Chargeback")) rec.cbAt = todayStr();
+    if (rec.paid && !(prevDeal && prevDeal.paid)) rec.paidOn = todayStr();
     if (editingId) {
       var i = state.deals.findIndex(function (x) { return x.id === editingId; });
       // Merge over the old record so anything the form doesn't show (the to-do
